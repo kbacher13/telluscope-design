@@ -1,0 +1,1823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Telluscope</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;width:100%}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:#F5F6F8;color:#111827;font-size:14px;line-height:1.5}
+
+/* ── NAV ── */
+.nav{position:fixed;top:0;left:0;right:0;height:52px;background:#fff;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;padding:0 24px;z-index:1000;gap:0}
+.nav-logo{font-size:17px;font-weight:800;color:#111827;margin-right:32px;letter-spacing:-.3px;flex-shrink:0}
+.nav-links{display:flex;align-items:stretch;gap:0;flex:1;height:100%}
+.nav-link{display:flex;align-items:center;padding:0 16px;font-size:13.5px;font-weight:500;color:#6B7280;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;background:none;border-left:none;border-right:none;border-top:none;font-family:inherit}
+.nav-link:hover{color:#111827}
+.nav-link.active{color:#17A8C4;border-bottom-color:#17A8C4;font-weight:600}
+.nav-right{display:flex;align-items:center;gap:16px;flex-shrink:0}
+.nav-icon{width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#6B7280;border-radius:6px}
+.nav-icon:hover{background:#F3F4F6}
+.nav-avatar{width:30px;height:30px;border-radius:50%;background:#17A8C4;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff}
+
+/* ── VIEWS ── */
+.view{display:none;min-height:100vh;height:100vh;overflow:hidden}
+.view.on{display:block}
+.view#view-detail.on{display:flex;height:100vh;padding-top:52px;flex-direction:column;margin:0}
+#view-detail .detail-wrap{flex:1;display:flex;flex-direction:row}
+
+/* ══════════════════════════════
+   PIPELINE VIEW
+══════════════════════════════ */
+.pl{padding:32px 40px;max-width:1400px;margin:0 auto}
+.pl-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+.pl-title{font-size:32px;font-weight:800;color:#111827;letter-spacing:-.5px}
+.btn-add{display:flex;align-items:center;gap:8px;background:#111827;color:#fff;border:none;border-radius:8px;padding:11px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-add:hover{background:#1f2937}
+
+/* Stats row */
+.stats-row{display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-bottom:24px}
+.stat-card{background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:28px 32px}
+.stat-label{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9CA3AF;margin-bottom:16px}
+.stat-big{font-size:52px;font-weight:900;color:#111827;line-height:1;display:inline;letter-spacing:-1px}
+.stat-unit{font-size:16px;font-weight:600;color:#6B7280;margin-left:6px}
+.stat-sub{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:13px;color:#17A8C4;font-weight:500}
+
+/* Risk distribution */
+.risk-bar-wrap{margin-bottom:14px}
+.risk-bar-track{height:12px;border-radius:6px;overflow:hidden;display:flex;margin:12px 0}
+.risk-seg{height:100%}
+.risk-legend-row{display:flex;justify-content:space-between;align-items:center}
+.rl{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600}
+.rl-dot{width:8px;height:8px;border-radius:50%}
+.risk-note{font-size:12px;color:#9CA3AF;margin-top:8px}
+
+/* Pipeline table card */
+.pipe-card{background:#fff;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden}
+.pipe-card-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #E5E7EB}
+.pipe-card-title{font-size:18px;font-weight:700;color:#111827}
+.pipe-actions{display:flex;gap:8px}
+.btn-sm{display:flex;align-items:center;gap:6px;padding:8px 16px;border:1px solid #E5E7EB;border-radius:8px;background:#fff;font-size:13px;font-weight:500;cursor:pointer;color:#374151;font-family:inherit}
+.btn-sm:hover{border-color:#9CA3AF}
+
+/* Table */
+.pipe-table{width:100%;border-collapse:collapse}
+.pipe-table th{padding:12px 24px;text-align:left;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9CA3AF;border-bottom:1px solid #F3F4F6}
+.pipe-table td{padding:18px 24px;vertical-align:middle;border-bottom:1px solid #F3F4F6}
+.pipe-table tbody tr:last-child td{border-bottom:none}
+.pipe-table tbody tr{cursor:pointer;transition:background .1s}
+.pipe-table tbody tr:hover{background:#FAFAFA}
+.prop-num{width:36px;height:36px;border-radius:8px;background:#F3F4F6;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#374151;flex-shrink:0}
+.prop-cell{display:flex;align-items:center;gap:14px}
+.prop-name{font-size:14px;font-weight:700;color:#111827;margin-bottom:2px}
+.prop-addr{font-size:12.5px;color:#9CA3AF}
+
+/* REC bar */
+.rec-wrap{display:flex;align-items:center;gap:12px}
+.rec-bar{width:140px;height:18px;background:#F3F4F6;border-radius:6px;overflow:hidden;display:flex;border:1px solid #E5E7EB}
+.rec-fill{height:100%;flex-shrink:0;position:relative}
+.rec-fill::after{content:'';position:absolute;right:0;top:0;width:1px;height:100%;background:#fff}
+.rec-fill:last-child::after{display:none}
+.rec-label{font-size:13px;font-weight:600;min-width:60px;text-align:right}
+.rec-low{color:#17A8C4}.rec-elevated{color:#F59E0B}.rec-high{color:#EF4444}
+
+/* Analysis badge */
+.badge-chip{display:inline-flex;align-items:center;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;background:#F3F4F6;color:#374151;margin-bottom:4px}
+.analyzing{display:flex;align-items:center;gap:6px;font-size:12px;color:#17A8C4;font-weight:500}
+.spin{animation:spin .8s linear infinite;display:inline-block}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+/* Doc + action */
+.doc-cell{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#374151}
+.doc-add{width:28px;height:28px;border:1px solid #E5E7EB;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:#9CA3AF;background:#fff}
+.action-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid #E5E7EB;border-radius:8px;background:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#374151;letter-spacing:.03em;text-transform:uppercase}
+.action-chevron{font-size:10px;color:#9CA3AF}
+.cb{width:16px;height:16px;border:1.5px solid #D1D5DB;border-radius:4px;cursor:pointer;flex-shrink:0}
+
+/* ══════════════════════════════
+   MAP VIEW
+══════════════════════════════ */
+.map-view{display:none;flex-direction:column;height:calc(100vh - 52px);padding-top:52px}
+.map-view.on{display:flex}
+
+/* Search bar */
+.map-searchbar{background:#fff;border-bottom:1px solid #E5E7EB;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;z-index:200}
+.map-search-inner{position:relative;flex:1;max-width:560px}
+.map-srch{width:100%;padding:10px 90px 10px 38px;border:1.5px solid #E5E7EB;border-radius:8px;font-size:14px;font-family:inherit;color:#111827;outline:none;background:#F9FAFB;transition:border-color .15s}
+.map-srch:focus{border-color:#17A8C4;background:#fff}
+.map-srch-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;color:#9CA3AF;pointer-events:none}
+.map-srch-btn{position:absolute;right:5px;top:50%;transform:translateY(-50%);background:#17A8C4;color:#fff;border:none;border-radius:6px;padding:5px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.upload-btn-nav{display:flex;align-items:center;gap:7px;background:#111827;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0}
+
+/* Map controls bar */
+.map-controls-bar{background:#fff;border-bottom:1px solid #E5E7EB;flex-shrink:0;z-index:199}
+.map-layers-row{display:flex;align-items:center;gap:0;padding:0 16px;border-bottom:1px solid #F3F4F6}
+.map-layers-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9CA3AF;margin-right:16px;flex-shrink:0}
+.layer-tab{padding:10px 16px;font-size:13px;font-weight:500;color:#6B7280;cursor:pointer;border-bottom:2px solid transparent;background:none;border-left:none;border-right:none;border-top:none;font-family:inherit;display:flex;align-items:center;gap:6px}
+.layer-tab:hover{color:#111827}
+.layer-tab.active{color:#17A8C4;border-bottom-color:#17A8C4;font-weight:600}
+.overlay-row{display:flex;align-items:center;gap:8px;padding:8px 16px;flex-wrap:wrap}
+.overlay-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9CA3AF;margin-right:8px;flex-shrink:0}
+.overlay-pill{display:flex;align-items:center;gap:6px;padding:5px 13px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #E5E7EB;background:#fff;color:#6B7280;transition:all .15s;font-family:inherit;white-space:nowrap}
+.overlay-pill:hover{border-color:#9CA3AF}
+.overlay-pill.on{border-color:transparent;color:#fff}
+.pill-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+
+/* Map body */
+.map-body{flex:1;display:flex;overflow:hidden;position:relative}
+
+/* Satellite map background */
+.map-canvas{flex:1;position:relative;overflow:hidden;background:#2C3E2D}
+
+/* Simulated satellite texture */
+.map-canvas::before{content:'';position:absolute;inset:0;background:
+  radial-gradient(ellipse at 20% 30%,rgba(40,60,35,.8) 0%,transparent 50%),
+  radial-gradient(ellipse at 75% 20%,rgba(55,75,50,.6) 0%,transparent 40%),
+  radial-gradient(ellipse at 50% 70%,rgba(35,55,30,.7) 0%,transparent 60%),
+  radial-gradient(ellipse at 85% 65%,rgba(60,80,55,.5) 0%,transparent 45%),
+  linear-gradient(160deg,#1E3A1E 0%,#2A4A2A 30%,#1C3020 60%,#243828 100%);
+  pointer-events:none;z-index:0}
+
+/* Road grid overlay for satellite feel */
+.map-roads{position:absolute;inset:0;z-index:1;pointer-events:none}
+
+/* Radius rings */
+.radius-ring{position:absolute;border-radius:50%;border:2px dashed #F59E0B;pointer-events:none;display:flex;align-items:flex-start;justify-content:flex-end;z-index:5}
+.radius-label{background:rgba(245,158,11,.9);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;margin:8px 8px 0 0;white-space:nowrap}
+
+/* Pins */
+.pin{position:absolute;cursor:pointer;text-align:center;transform:translateX(-50%);z-index:20}
+.pin-circle{width:28px;height:28px;border-radius:50%;border:2.5px solid #fff;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:11px;font-weight:800;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.35);transition:transform .15s}
+.pin:hover .pin-circle{transform:scale(1.18)}
+.pin.queried .pin-circle{width:32px;height:32px;background:#1E40AF;border:3px solid #fff;box-shadow:0 0 0 3px rgba(30,64,175,.4),0 3px 12px rgba(0,0,0,.4)}
+@keyframes ppulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.6)}50%{box-shadow:0 0 0 12px rgba(239,68,68,0)}}
+.pin.high .pin-circle{animation:ppulse 2s infinite}
+
+/* Map zoom controls */
+.zoom-ctrl{position:absolute;right:16px;top:16px;display:flex;flex-direction:column;z-index:30}
+.zoom-btn{width:36px;height:36px;background:#fff;border:1px solid #D1D5DB;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;color:#374151;font-weight:300}
+.zoom-btn:first-child{border-radius:4px 4px 0 0;border-bottom:none}
+.zoom-btn:last-child{border-radius:0 0 4px 4px}
+.zoom-btn:hover{background:#F9FAFB}
+
+/* Map coords + link */
+.map-footer{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:rgba(0,0,0,.5);z-index:30}
+.map-coords{font-size:11px;color:rgba(255,255,255,.8);font-family:monospace}
+.map-gmaps{font-size:12px;color:#60A5FA;font-weight:600;display:flex;align-items:center;gap:4px;text-decoration:none}
+
+/* Sidebar */
+.map-sidebar{width:360px;flex-shrink:0;background:#fff;border-left:1px solid #E5E7EB;overflow-y:auto;display:none;flex-direction:column}
+.map-sidebar.on{display:flex}
+.sb-header{padding:16px 18px;border-bottom:1px solid #E5E7EB;flex-shrink:0}
+.sb-close{float:right;background:none;border:none;font-size:20px;cursor:pointer;color:#9CA3AF;line-height:1}
+.sb-addr{font-size:15px;font-weight:800;color:#111827;margin-bottom:3px;padding-right:28px}
+.sb-city{font-size:12.5px;color:#9CA3AF;margin-bottom:12px}
+
+/* Risk chip */
+.risk-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700}
+.chip-low{background:#E0F7FA;color:#0E7490}
+.chip-elevated{background:#FEF3C7;color:#B45309}
+.chip-high{background:#FEE2E2;color:#B91C1C}
+
+/* Sidebar fields */
+.sb-body{padding:16px 18px;display:flex;flex-direction:column;gap:0}
+.sb-section{padding:12px 0;border-bottom:1px solid #F3F4F6}
+.sb-section:last-child{border-bottom:none}
+.sb-field-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9CA3AF;margin-bottom:5px}
+.sb-field-val{font-size:13px;color:#111827;font-weight:500;line-height:1.5}
+.sb-field-sub{font-size:11.5px;color:#6B7280;margin-top:2px}
+
+/* REC tags */
+.rec-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.rtag{display:inline-flex;align-items:center;padding:3px 9px;border-radius:5px;font-size:11px;font-weight:700}
+.rtag-rec{background:#FEE2E2;color:#B91C1C}
+.rtag-hrec{background:#FFF7ED;color:#C2410C}
+.rtag-crec{background:#FEF9C3;color:#854D0E}
+.rtag-demin{background:#DCFCE7;color:#15803D}
+.rtag-aoc{background:#EDE9FE;color:#6D28D9}
+.rtag-none{background:#F3F4F6;color:#6B7280}
+
+/* Timeline */
+.timeline{margin-top:6px;display:flex;flex-direction:column;gap:0;position:relative;padding-left:20px}
+.timeline::before{content:'';position:absolute;left:6px;top:4px;bottom:4px;width:1.5px;background:#E5E7EB}
+.tl-item{position:relative;padding:3px 0}
+.tl-dot{position:absolute;left:-18px;top:6px;width:8px;height:8px;border-radius:50%;background:#17A8C4;border:1.5px solid #fff;box-shadow:0 0 0 1.5px #17A8C4}
+.tl-year{font-size:10px;font-weight:700;color:#9CA3AF;margin-bottom:1px}
+.tl-use{font-size:12.5px;color:#111827;font-weight:500}
+
+/* Pollution detail */
+.poll-box{background:#FEF2F2;border:1px solid #FECACA;border-radius:7px;padding:10px 12px;margin-top:6px}
+.poll-box.elevated{background:#FFF7ED;border-color:#FED7AA}
+.poll-box.none{background:#F0FDF4;border-color:#BBF7D0}
+.poll-name{font-size:12.5px;font-weight:700;color:#B91C1C;margin-bottom:5px}
+.poll-name.elevated{color:#C2410C}
+.poll-name.none{color:#15803D}
+.poll-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px 12px}
+.poll-kv{font-size:11px;color:#6B7280}
+.poll-kv span{font-weight:600;color:#374151}
+
+/* Expand button */
+.expand-btn{width:100%;padding:12px;background:#111827;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:16px;display:flex;align-items:center;justify-content:center;gap:8px}
+.expand-btn:hover{background:#1f2937}
+.save-to-port{width:100%;padding:11px;background:#fff;border:1.5px solid #E5E7EB;border-radius:8px;color:#374151;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:7px}
+.save-to-port:hover{border-color:#17A8C4;color:#17A8C4}
+
+/* ══════════════════════════════
+   SITE DETAIL VIEW
+══════════════════════════════ */
+.detail-wrap{display:flex;height:100%}
+
+/* Left sidebar */
+.det-sidebar{width:260px;height:100%;flex-shrink:0;background:#fff;border-right:1px solid #E5E7EB;display:flex;flex-direction:column;overflow-y:auto}
+.det-prop-card{padding:16px;display:flex;align-items:flex-start;gap:12px;border-bottom:1px solid #E5E7EB}
+.det-prop-num{width:36px;height:36px;border-radius:8px;background:#111827;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0}
+.det-prop-info{flex:1;min-width:0}
+.det-prop-name{font-size:13px;font-weight:700;color:#111827;line-height:1.3;margin-bottom:4px}
+.det-rec-lkly{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.det-rec-lkly.high{color:#EF4444}
+.det-rec-lkly.elevated{color:#F59E0B}
+.det-rec-lkly.low{color:#17A8C4}
+.det-sdiv{height:1px;background:#E5E7EB;margin:6px 0}
+.det-slabel{font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9CA3AF;padding:10px 16px 4px}
+.det-si{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:13px;font-weight:500;color:#374151;cursor:pointer;border:none;width:100%;text-align:left;font-family:inherit;background:none;transition:background .1s}
+.det-si:hover{background:#F9FAFB}
+.det-si.on{background:#E0F7FA;color:#0E7490;font-weight:600}
+.det-si-icon{width:28px;height:28px;border-radius:6px;background:#F3F4F6;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.det-si.on .det-si-icon{background:#B2EBF2}
+
+/* Main area */
+.det-main{flex:1;height:100%;overflow-y:auto;background:#F8F9FA}
+
+/* Page header */
+.det-page-header{background:#fff;border-bottom:1px solid #E5E7EB;padding:20px 32px}
+.det-crumb{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9CA3AF;margin-bottom:10px}
+.det-page-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:10px}
+.det-page-title{font-size:22px;font-weight:800;color:#111827;line-height:1.2;flex:1}
+.det-add-docs{display:flex;align-items:center;gap:7px;background:#111827;color:#fff;border:none;border-radius:20px;padding:9px 18px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0}
+.det-last-updated{font-size:10.5px;color:#9CA3AF;text-align:right;flex-shrink:0;line-height:1.5}
+.det-analysis-badge{display:inline-flex;align-items:center;padding:4px 12px;border-radius:5px;font-size:12px;font-weight:600;background:#F3F4F6;color:#374151;border:1px solid #E5E7EB}
+
+/* Dark hero card */
+.hero-card{background:#1a2332;border-radius:12px;padding:28px;display:grid;grid-template-columns:26% 42% 32%;margin-bottom:16px}
+.hero-panel{padding:0 20px}
+.hero-panel:first-child{padding-left:0}
+.hero-panel:last-child{padding-right:0}
+.hero-panel+.hero-panel{border-left:1px solid rgba(255,255,255,.1)}
+.hl{font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#00BCD4;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.hgiant{font-size:32px;font-weight:900;line-height:1;letter-spacing:-.02em}
+.hbar{height:4px;background:rgba(255,255,255,.12);border-radius:2px;margin:10px 0 6px;overflow:hidden}
+.hbar-fill{height:100%;background:#00BCD4;border-radius:2px}
+.hrlist{list-style:none;display:flex;flex-direction:column;gap:10px}
+.hritem{display:flex;align-items:flex-start;gap:9px}
+.hrtitle{font-size:12px;font-weight:600;color:rgba(255,255,255,.9);line-height:1.4}
+.hrdetail{font-size:11px;color:rgba(255,255,255,.45);line-height:1.3;margin-top:2px}
+.hscore{font-size:32px;font-weight:800;color:#00BCD4;line-height:1}
+.hmiss-lbl{font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.35);margin:10px 0 6px}
+.hmiss{font-size:11px;color:rgba(255,255,255,.5);padding:3px 0 3px 12px;position:relative;line-height:1.4}
+.hmiss::before{content:'•';position:absolute;left:0;color:rgba(255,255,255,.25)}
+.hscan{font-size:10.5px;color:rgba(255,255,255,.4)}
+
+/* Risk Summary card */
+.risk-summary-card{background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:22px 26px;margin-bottom:16px}
+.risk-summary-header{display:flex;align-items:center;gap:10px;font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#6B7280;margin-bottom:14px}
+.risk-summary-header::before{content:'';display:inline-block;width:20px;height:2px;background:#E5E7EB;flex-shrink:0}
+.risk-summary-text{font-size:13.5px;color:#374151;line-height:1.75}
+
+/* Misc shared */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.br{background:#FEE2E2;color:#B91C1C}
+.bo{background:#FFF7ED;color:#C2410C}
+.bg{background:#DCFCE7;color:#15803D}
+.bgy{background:#F3F4F6;color:#9CA3AF}
+.bb{background:#DBEAFE;color:#1E40AF}
+.bt{background:#E0F7FA;color:#0E7490}
+.wcard-label{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#6B7280;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.wcard-label::before{content:'';display:inline-block;width:20px;height:2px;background:#E5E7EB;flex-shrink:0}
+
+/* Site Intelligence */
+.si-header{font-size:15px;font-weight:800;color:#111827;margin-bottom:12px;letter-spacing:-.2px}
+.si-section{background:#fff;border:1px solid #E5E7EB;border-radius:10px;margin-bottom:12px;overflow:hidden}
+.si-acc-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;cursor:pointer;user-select:none}
+.si-acc-header:hover{background:#FAFAFA}
+.si-acc-title{display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:700;color:#111827}
+.si-acc-icon{width:30px;height:30px;background:#F3F4F6;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.si-acc-chevron{font-size:11px;color:#9CA3AF;transition:transform .2s}
+.si-body{padding:0 20px 20px;border-top:1px solid #F3F4F6;display:none}
+.si-body.open{display:block}
+
+/* Current Use */
+.cu-grid{display:grid;grid-template-columns:1fr 320px;gap:20px;padding-top:16px}
+.cu-row{display:flex;padding:9px 0;border-bottom:1px solid #F3F4F6;align-items:baseline}
+.cu-row:last-child{border-bottom:none}
+.cu-label{font-size:12.5px;color:#6B7280;width:200px;flex-shrink:0}
+.cu-val{font-size:13px;color:#111827;font-weight:500}
+.cu-val.nr{color:#9CA3AF;font-weight:400;font-style:italic}
+.db-lookup{background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:14px}
+.db-lookup-title{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#374151;margin-bottom:3px}
+.db-lookup-sub{font-size:11px;color:#9CA3AF;margin-bottom:12px;line-height:1.4}
+.db-item{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #F3F4F6}
+.db-item:last-child{border-bottom:none}
+.db-item-name{font-size:11.5px;color:#17A8C4;font-weight:500;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(23,168,196,.3)}
+.db-item-result{font-size:11px;color:#9CA3AF}
+.db-found{display:flex;align-items:center;gap:8px;padding:6px 8px;background:#F0FDF4;border-radius:5px;margin:4px 0}
+.db-found-ct{font-size:11.5px;font-weight:700;color:#15803D}
+
+/* Historical Use Timeline */
+.ht-wrap{padding-top:16px;display:flex;flex-direction:column}
+.ht-item{display:flex;gap:14px;padding:12px 0;border-bottom:1px solid #F3F4F6}
+.ht-item:last-child{border-bottom:none}
+.ht-year{font-size:11px;font-weight:700;color:#6B7280;width:76px;flex-shrink:0;padding-top:3px}
+.ht-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.ht-dot-gap{background:#F59E0B;border:2px solid #FEF3C7}
+.ht-dot-active{background:#22C55E;border:2px solid #BBF7D0}
+.ht-dot-current{background:#9CA3AF;border:2px solid #E5E7EB}
+.ht-content{flex:1}
+.ht-name{font-size:13.5px;font-weight:700;color:#111827;margin-bottom:5px}
+.ht-tag{display:inline-flex;align-items:center;padding:2px 10px;border-radius:4px;font-size:11px;font-weight:600;background:#F3F4F6;color:#374151;margin-bottom:7px}
+.ht-desc{font-size:12.5px;color:#6B7280;line-height:1.55;margin-bottom:6px}
+.ht-reg{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:#F59E0B;font-weight:600;cursor:pointer}
+.ht-reg::before{content:'⚠ '}
+
+/* Physical Setting */
+.phys-grid{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid #E5E7EB;border-radius:8px;overflow:hidden;margin-bottom:14px}
+.phys-cell{padding:12px 14px;border-right:1px solid #E5E7EB;border-bottom:1px solid #E5E7EB}
+.phys-cell:nth-child(3n){border-right:none}
+.phys-cell:nth-last-child(-n+3){border-bottom:none}
+.phys-lbl{font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#9CA3AF;margin-bottom:4px}
+.phys-val{font-size:14px;font-weight:700;color:#111827}
+.phys-val.green{color:#22C55E}
+.phys-val.orange{color:#F59E0B}
+.phys-val.nr{color:#9CA3AF;font-weight:400;font-size:13px;font-style:italic}
+.phys-sub{font-size:11px;color:#9CA3AF;margin-top:2px}
+.haz-table{width:100%;border-collapse:collapse}
+.haz-table th{padding:8px 14px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9CA3AF;border-bottom:1px solid #E5E7EB;background:#F9FAFB}
+.haz-table td{padding:10px 14px;font-size:12.5px;border-bottom:1px solid #F3F4F6;color:#374151;vertical-align:middle}
+.haz-table tbody tr:last-child td{border-bottom:none}
+.haz-status{display:inline-flex;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:700;background:#F3F4F6;color:#6B7280;letter-spacing:.04em;text-transform:uppercase}
+
+/* ══════════════════════════════
+   MODALS
+══════════════════════════════ */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;display:none;align-items:center;justify-content:center}
+.modal-bg.on{display:flex}
+.modal-box{background:#fff;border-radius:16px;width:500px;max-width:94vw;padding:32px;box-shadow:0 24px 64px rgba(0,0,0,.2);position:relative;animation:su .18s ease}
+@keyframes su{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.modal-close{position:absolute;top:16px;right:18px;background:none;border:none;font-size:22px;cursor:pointer;color:#9CA3AF}
+.modal-title{font-size:20px;font-weight:800;margin-bottom:4px}
+.modal-sub{font-size:13px;color:#6B7280;margin-bottom:22px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;font-weight:600;color:#6B7280;margin-bottom:5px;letter-spacing:.04em;text-transform:uppercase}
+.field input{width:100%;border:1.5px solid #E5E7EB;border-radius:7px;padding:9px 13px;font-size:14px;font-family:inherit;color:#111827;outline:none}
+.field input:focus{border-color:#17A8C4}
+.uzone{border:2px dashed #17A8C4;border-radius:10px;padding:28px;text-align:center;cursor:pointer;background:#F0FAFB;margin-bottom:18px}
+.uzone:hover{background:#E0F7FA}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px}
+.btn-out{background:#fff;border:1.5px solid #E5E7EB;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:#374151}
+.btn-out:hover{border-color:#9CA3AF}
+.btn-dark-sm{background:#111827;color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit}
+
+/* Upload modal tabs */
+.modal-tab{background:none;border:none;border-bottom:2px solid transparent;padding:10px 0;font-size:13px;font-weight:600;color:#6B7280;cursor:pointer;font-family:inherit;transition:all .15s}
+.modal-tab:hover{color:#111827}
+.modal-tab.on{color:#17A8C4;border-bottom-color:#17A8C4}
+
+/* Save to portfolio modal */
+.sm-port-opt{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1.5px solid #E5E7EB;border-radius:8px;cursor:pointer;margin-bottom:7px;transition:all .15s}
+.sm-port-opt:hover{border-color:#17A8C4;background:#E0F7FA}
+.sm-port-name{font-size:13px;font-weight:600;color:#111827}
+.sm-port-ct{font-size:11px;color:#9CA3AF}
+
+/* Match Review Modal */
+.match-item{padding:16px;border-bottom:1px solid #F3F4F6}
+.match-item:last-child{border-bottom:none}
+.match-status{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:600;font-size:12.5px}
+.match-badge{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff}
+.match-confirmed{background:#22C55E}.match-inferred{background:#F59E0B}.match-unmatched{background:#EF4444}
+.match-filename{font-size:13px;font-weight:600;color:#111827}
+.match-report{font-size:12px;color:#6B7280;margin:3px 0}
+.match-matched{font-size:12px;color:#17A8C4;margin:6px 0}
+.match-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.match-action-btn{font-size:11px;font-weight:600;color:#17A8C4;background:none;border:none;cursor:pointer;padding:0}
+.match-action-btn:hover{text-decoration:underline}
+
+/* Toast */
+#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:12px 22px;border-radius:8px;font-size:13.5px;font-weight:600;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);transition:opacity .3s;pointer-events:none;opacity:0}
+</style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav class="nav">
+  <div class="nav-logo">Telluscope</div>
+  <div class="nav-links">
+    <button class="nav-link active" id="tab-map" onclick="go('map')">Search</button>
+    <button class="nav-link" id="tab-pipeline" onclick="go('pipeline')">Archive</button>
+  </div>
+  <div class="nav-right">
+    <div class="nav-icon">🔔</div>
+    <div class="nav-icon">⚙️</div>
+    <div class="nav-avatar">K</div>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════
+     PIPELINE VIEW
+══════════════════════════════════════ -->
+<div class="view" id="view-pipeline">
+<div class="pl">
+  <div class="pl-header">
+    <div class="pl-title">Archive</div>
+  </div>
+
+  <div class="stats-row">
+    <!-- Deals card -->
+    <div class="stat-card">
+      <div class="stat-label">Sites Analyzed</div>
+      <div><span class="stat-big" id="dealCount">10</span></div>
+    </div>
+    <!-- Risk distribution -->
+    <div class="stat-card">
+      <div class="stat-label">Risk Distribution</div>
+      <div class="risk-bar-track" id="riskBarTrack">
+        <div class="risk-seg" style="width:10%;background:#17A8C4"></div>
+        <div class="risk-seg" style="width:90%;background:#F59E0B"></div>
+        <div class="risk-seg" style="width:0%;background:#EF4444"></div>
+      </div>
+      <div class="risk-legend-row">
+        <div class="rl"><div class="rl-dot" style="background:#17A8C4"></div><span style="color:#17A8C4" id="pctLow">10% LOW</span></div>
+        <div class="rl"><div class="rl-dot" style="background:#F59E0B"></div><span style="color:#F59E0B" id="pctElev">90% ELEVATED</span></div>
+        <div class="rl"><div class="rl-dot" style="background:#EF4444"></div><span style="color:#EF4444" id="pctHigh">0% HIGH</span></div>
+      </div>
+      <div class="risk-note" id="riskNote">Based on 10 screened of 10 total</div>
+    </div>
+  </div>
+
+  <!-- Active Pipeline table -->
+  <div class="pipe-card">
+    <div class="pipe-card-header">
+      <div class="pipe-card-title">Archived Sites</div>
+      <div class="pipe-actions">
+        <button class="btn-sm">⊞ Filter</button>
+        <button class="btn-sm">⬇ Export</button>
+      </div>
+    </div>
+    <table class="pipe-table">
+      <thead>
+        <tr>
+          <td style="width:40px;padding:12px 12px 12px 24px"><div class="cb"></div></td>
+          <th>Property &amp; Location ↕</th>
+          <th>Risk Classification</th>
+          <th style="width:80px"># Sites</th>
+          <th>Analysis Type</th>
+          <th style="width:100px">Date Added</th>
+        </tr>
+      </thead>
+      <tbody id="pipeTableBody">
+        <tr onclick="openDetail('3444 West 500 South','Salt Lake City, UT, USA','Elevated','ARA Q2')">
+          <td style="padding:18px 12px 18px 24px"><div class="cb"></div></td>
+          <td><div class="prop-cell"><div><div class="prop-name">3444 West 500 South, Salt Lake City, UT, USA</div><div class="prop-addr">3444 West 500 South</div></div></div></td>
+          <td><div class="rec-wrap"><div class="rec-bar"><div class="rec-fill" style="width:60%;background:#F59E0B"></div></div><span class="rec-label rec-elevated">Elevated</span></div></td>
+          <td style="text-align:center;font-weight:600;color:#111827">1</td>
+          <td><div><div class="badge-chip">Basic Search...</div><div class="analyzing"><span class="spin">↻</span>Analyzing…</div></div></td>
+          <td style="font-size:12px;color:#6B7280">May 12, 2026</td>
+        </tr>
+        <tr onclick="openDetail('111 Boardman Ave NW','Boardman, OR, USA','Elevated','Blackstone')">
+          <td style="padding:18px 12px 18px 24px"><div class="cb"></div></td>
+          <td><div class="prop-cell"><div><div class="prop-name">111 Boardman Ave NW, Boardman, OR, USA</div><div class="prop-addr">111 Boardman Ave NW, Boardman, OR, USA</div></div></div></td>
+          <td><div class="rec-wrap"><div class="rec-bar"><div class="rec-fill" style="width:55%;background:#F59E0B"></div></div><span class="rec-label rec-elevated">Elevated</span></div></td>
+          <td style="text-align:center;font-weight:600;color:#111827">1</td>
+          <td><div><div class="badge-chip">Basic Search...</div></div></td>
+          <td style="font-size:12px;color:#6B7280">May 10, 2026</td>
+        </tr>
+        <tr onclick="openPortfolio('ARA Capital — Q2 2026', 10, '2H·6E·2L', {high:2, elevated:6, low:2})">
+          <td style="padding:18px 12px 18px 24px"><div class="cb"></div></td>
+          <td><div class="prop-cell"><div><div class="prop-name">ARA Capital — Q2 2026</div><div class="prop-addr">10 assets in portfolio</div></div></div></td>
+          <td><div class="rec-wrap"><div class="rec-bar"><div class="rec-fill" style="width:20%;background:#17A8C4"></div><div class="rec-fill" style="width:60%;background:#F59E0B"></div><div class="rec-fill" style="width:20%;background:#EF4444"></div></div><span class="rec-label" style="font-size:11px">2H·6E·2L</span></div></td>
+          <td style="text-align:center;font-weight:600;color:#111827">10</td>
+          <td><div><div class="badge-chip">Document Analysis</div><div class="analyzing"><span class="spin">↻</span>Analyzing…</div></div></td>
+          <td style="font-size:12px;color:#6B7280">May 8, 2026</td>
+        </tr>
+        <tr onclick="openDetail('540 W Woodbury Rd','Altadena, CA 91001','High','Single Upload')">
+          <td style="padding:18px 12px 18px 24px"><div class="cb"></div></td>
+          <td><div class="prop-cell"><div><div class="prop-name">540 W Woodbury Rd, Altadena, CA</div><div class="prop-addr">Altadena, CA 91001</div></div></div></td>
+          <td><div class="rec-wrap"><div class="rec-bar"><div class="rec-fill" style="width:85%;background:#EF4444"></div></div><span class="rec-label rec-high">High</span></div></td>
+          <td style="text-align:center;font-weight:600;color:#111827">1</td>
+          <td><div><div class="badge-chip">Document Analysis</div></div></td>
+          <td style="font-size:12px;color:#6B7280">May 15, 2026</td>
+        </tr>
+        <tr onclick="openPortfolio('Blackstone Industrial', 6, '1H·3E·2L', {high:1, elevated:3, low:2})">
+          <td style="padding:18px 12px 18px 24px"><div class="cb"></div></td>
+          <td><div class="prop-cell"><div><div class="prop-name">Blackstone Industrial</div><div class="prop-addr">6 assets in portfolio</div></div></div></td>
+          <td><div class="rec-wrap"><div class="rec-bar"><div class="rec-fill" style="width:30%;background:#17A8C4"></div><div class="rec-fill" style="width:50%;background:#F59E0B"></div><div class="rec-fill" style="width:20%;background:#EF4444"></div></div><span class="rec-label" style="font-size:11px">1H·3E·2L</span></div></td>
+          <td style="text-align:center;font-weight:600;color:#111827">6</td>
+          <td><div><div class="badge-chip">Document Analysis</div></div></td>
+          <td style="font-size:12px;color:#6B7280">May 5, 2026</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════
+     PORTFOLIO DILIGENCE VIEW
+══════════════════════════════════════ -->
+<div class="view" id="view-portfolio-diligence">
+  <div class="pl">
+    <!-- Header with back button -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:32px">
+      <button onclick="go('pipeline')" style="background:none;border:none;font-size:20px;cursor:pointer;color:#9CA3AF">←</button>
+      <div>
+        <div style="font-size:11px;color:#9CA3AF;font-weight:600;text-transform:uppercase">Portfolio</div>
+        <div style="font-size:32px;font-weight:800;color:#111827;letter-spacing:-.5px" id="portDilTitle">ARA Capital — Q2 2026</div>
+      </div>
+    </div>
+
+    <!-- Stats and risk distribution -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label"># Deals in Review</div>
+        <div><span class="stat-big" id="portDilAssetCount">10</span><span class="stat-unit">Assets</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Risk Distribution</div>
+        <div class="risk-bar-track" id="portDilRiskBar" style="margin:12px 0"></div>
+        <div style="display:flex;gap:20px;font-size:12px;font-weight:600">
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="width:8px;height:8px;border-radius:50%;background:#17A8C4"></div>
+            <span style="color:#17A8C4">10% LOW</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="width:8px;height:8px;border-radius:50%;background:#F59E0B"></div>
+            <span style="color:#F59E0B">90% ELEVATED</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="width:8px;height:8px;border-radius:50%;background:#EF4444"></div>
+            <span style="color:#EF4444">0% HIGH</span>
+          </div>
+        </div>
+        <div style="font-size:12px;color:#9CA3AF;margin-top:8px">Based on 10 screened of 10 total</div>
+      </div>
+    </div>
+
+    <!-- Pipeline table for portfolio sites -->
+    <div class="pipe-card">
+      <div class="pipe-card-header">
+        <div class="pipe-card-title">Portfolio Assets</div>
+        <div class="pipe-actions">
+          <button class="btn-sm">Filter</button>
+          <button class="btn-sm">Export</button>
+        </div>
+      </div>
+      <table class="pipe-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Property & Location</th>
+            <th>Risk Classification</th>
+            <th style="text-align:center"># Sites</th>
+            <th>Analysis Type</th>
+            <th>Date Added</th>
+          </tr>
+        </thead>
+        <tbody id="portDilTableBody">
+          <!-- Populated by JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     MAP VIEW
+══════════════════════════════════════ -->
+<div class="view on" id="view-map">
+<div class="map-view on" id="mapv">
+
+  <!-- Address search bar -->
+  <div class="map-searchbar">
+    <div class="map-search-inner">
+      <span class="map-srch-icon">📍</span>
+      <input class="map-srch" id="mapSrch" placeholder="Search any address or property…" onkeydown="if(event.key==='Enter')doSearch()"/>
+      <button class="map-srch-btn" onclick="doSearch()">Search</button>
+    </div>
+    <div style="flex:1"></div>
+    <button class="upload-btn-nav" onclick="openUpload()">📂 Upload</button>
+  </div>
+
+  <!-- Map layer controls -->
+  <div class="map-controls-bar">
+    <div class="map-layers-row">
+      <span class="map-layers-label">Map Layers</span>
+      <button class="layer-tab">🗺 Street Map</button>
+      <button class="layer-tab active">🛰 Satellite</button>
+      <button class="layer-tab">⛰ USGS Topo</button>
+    </div>
+    <div class="overlay-row">
+      <span class="overlay-label">Overlays</span>
+      <button class="overlay-pill on" style="background:#3B82F6;border-color:#3B82F6" onclick="togglePill(this)"><div class="pill-dot" style="background:rgba(255,255,255,.7)"></div>Flood Zones</button>
+      <button class="overlay-pill" onclick="togglePill(this)"><div class="pill-dot" style="background:#F59E0B"></div>Radon Zones</button>
+      <button class="overlay-pill" onclick="togglePill(this)"><div class="pill-dot" style="background:#22C55E"></div>Wetlands (NWI)</button>
+      <button class="overlay-pill" onclick="togglePill(this)"><div class="pill-dot" style="background:#06B6D4"></div>Groundwater Flow</button>
+      <button class="overlay-pill" onclick="togglePill(this)"><div class="pill-dot" style="background:#3B82F6"></div>Water Wells</button>
+      <button class="overlay-pill" onclick="togglePill(this)"><div class="pill-dot" style="background:#EC4899"></div>Vapor Encroachment</button>
+    </div>
+  </div>
+
+  <!-- Map body + right panel wrapper -->
+  <div style="display:flex;flex:1;overflow:hidden">
+
+  <!-- Left panel - Portfolio assets (shown after confirming matches) -->
+  <div style="width:160px;background:#f3f4f6;border-right:1px solid #e5e7eb;display:none;flex-direction:column;overflow:hidden;z-index:100" id="portfolioPanel">
+    <!-- Header -->
+    <div style="padding:12px;border-bottom:1px solid #e5e7eb">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <button onclick="closePortfolioPanel()" style="background:none;border:none;font-size:14px;cursor:pointer;color:#6b7280">×</button>
+        <div style="flex:1">
+          <div style="font-size:9px;color:#6b7280;font-weight:600;text-transform:uppercase">Portfolio</div>
+          <div style="font-size:13px;font-weight:700;color:#111827" id="portfolioPanelTitle">—</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;font-size:10px">
+        <div>
+          <div style="color:#6b7280;font-weight:600">Assets</div>
+          <div style="font-size:13px;font-weight:700;color:#111827" id="portfolioPanelAssetCount">10</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sites list -->
+    <div style="flex:1;overflow-y:auto;padding:0">
+      <div id="portfolioPanelList" style="padding:0">
+        <!-- Sites populated by JS -->
+      </div>
+    </div>
+
+    <!-- Add all to archive button -->
+    <button onclick="addPortfolioToArchive()" style="width:100%;padding:10px;background:#374151;color:#f8fafc;border:none;border-radius:0;font-weight:600;cursor:pointer;font-size:11px;margin-top:auto">📁 Add All to Archive</button>
+  </div>
+
+  <div class="map-body">
+    <div class="map-canvas" id="mapCanvas">
+
+      <!-- Roads SVG overlay -->
+      <svg class="map-roads" style="width:100%;height:100%">
+        <line x1="0" y1="52%" x2="100%" y2="52%" stroke="rgba(255,200,100,.35)" stroke-width="12"/>
+        <line x1="0" y1="65%" x2="100%" y2="65%" stroke="rgba(255,200,100,.2)" stroke-width="7"/>
+        <line x1="38%" y1="0" x2="38%" y2="100%" stroke="rgba(255,200,100,.2)" stroke-width="7"/>
+        <line x1="62%" y1="0" x2="62%" y2="100%" stroke="rgba(255,200,100,.35)" stroke-width="12"/>
+        <rect x="39%" y="20%" width="22%" height="30%" fill="rgba(60,80,50,.4)" rx="2"/>
+        <rect x="39%" y="54%" width="22%" height="9%" fill="rgba(60,80,50,.4)" rx="2"/>
+        <rect x="63%" y="20%" width="14%" height="30%" fill="rgba(60,80,50,.4)" rx="2"/>
+        <rect x="12%" y="54%" width="24%" height="9%" fill="rgba(60,80,50,.4)" rx="2"/>
+        <!-- Water body top-left -->
+        <ellipse cx="8%" cy="20%" rx="12%" ry="18%" fill="rgba(20,60,100,.6)"/>
+      </svg>
+
+      <!-- Flood zone overlay -->
+      <div id="floodOverlay" style="position:absolute;left:28%;top:40%;width:26%;height:22%;background:rgba(59,130,246,.15);border:1.5px solid rgba(59,130,246,.5);border-radius:4px;pointer-events:none;z-index:5;display:flex;align-items:center;justify-content:center">
+        <span style="font-size:10px;font-weight:700;color:rgba(59,130,246,.8);text-transform:uppercase;letter-spacing:.06em">Flood Zone A</span>
+      </div>
+
+      <!-- Radius rings (hidden until search) -->
+      <div id="radiusRings" style="display:none">
+        <div class="radius-ring" style="left:50%;top:49%;width:100px;height:100px;transform:translate(-50%,-50%)"><div class="radius-label">0.25 mi</div></div>
+        <div class="radius-ring" style="left:50%;top:49%;width:200px;height:200px;transform:translate(-50%,-50%)"><div class="radius-label">0.5 mi</div></div>
+        <div class="radius-ring" style="left:50%;top:49%;width:380px;height:380px;transform:translate(-50%,-50%)"><div class="radius-label">1 mi</div></div>
+      </div>
+
+      <!-- Search result pins (hidden until search) -->
+      <div id="searchPins" style="display:none">
+        <!-- Queried site (blue) -->
+        <div class="pin queried" style="left:50%;top:49%" onclick="openPanel('main')">
+          <div class="pin-circle"></div>
+        </div>
+        <!-- Nearby sites -->
+        <div class="pin" style="left:40%;top:40%" onclick="openPanel('n1')"><div class="pin-circle" style="background:#22C55E">!</div></div>
+        <div class="pin" style="left:57%;top:43%" onclick="openPanel('n2')"><div class="pin-circle" style="background:#22C55E">!</div></div>
+        <div class="pin" style="left:52%;top:55%" onclick="openPanel('n3')"><div class="pin-circle" style="background:#22C55E">!</div></div>
+        <div class="pin" style="left:44%;top:57%" onclick="openPanel('n4')"><div class="pin-circle" style="background:#22C55E">!</div></div>
+        <div class="pin" style="left:47%;top:36%" onclick="openPanel('n5')"><div class="pin-circle" style="background:#22C55E">!</div></div>
+      </div>
+
+      <!-- Portfolio pins (hidden until portfolio loaded) -->
+      <div id="portPins" style="display:none">
+        <div class="pin high" style="left:18%;top:44%" onclick="openPanel('pp1')"><div class="pin-circle" style="background:#EF4444">!</div></div>
+        <div class="pin high" style="left:55%;top:33%" onclick="openPanel('pp2')"><div class="pin-circle" style="background:#EF4444">!</div></div>
+        <div class="pin" style="left:28%;top:37%" onclick="openPanel('pp3')"><div class="pin-circle" style="background:#F59E0B">~</div></div>
+        <div class="pin" style="left:57%;top:29%" onclick="openPanel('pp4')"><div class="pin-circle" style="background:#F59E0B">~</div></div>
+        <div class="pin" style="left:61%;top:49%" onclick="openPanel('pp5')"><div class="pin-circle" style="background:#17A8C4">✓</div></div>
+      </div>
+
+      <!-- Empty state -->
+      <div id="mapEmpty" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:10">
+        <div style="text-align:center">
+          <div style="font-size:42px;margin-bottom:14px;opacity:.6">🛰️</div>
+          <div style="font-size:16px;font-weight:700;color:rgba(255,255,255,.8);margin-bottom:6px">Search any address</div>
+          <div style="font-size:13px;color:rgba(255,255,255,.45)">Environmental risk analysis within seconds</div>
+        </div>
+      </div>
+
+      <!-- Zoom controls -->
+      <div class="zoom-ctrl">
+        <button class="zoom-btn">+</button>
+        <button class="zoom-btn">−</button>
+      </div>
+
+      <!-- Footer -->
+      <div class="map-footer">
+        <span class="map-coords" id="mapCoords">45.8395°, −119.7046°</span>
+      </div>
+    </div>
+
+    <!-- ── SIDEBAR ── -->
+    <div class="map-sidebar" id="mapSidebar">
+      <div class="sb-header">
+        <button class="sb-close" onclick="closeSidebar()">✕</button>
+        <div class="sb-addr" id="sbAddr">—</div>
+        <div class="sb-city" id="sbCity">—</div>
+      </div>
+      <div class="sb-body" id="sbBody"></div>
+    </div>
+  </div>
+
+  <!-- Right panel - Search results sites (shown after search) -->
+  <div style="width:380px;background:#fff;border-left:1px solid #E5E7EB;display:none;flex-direction:column;overflow:hidden;z-index:100" id="searchPanel">
+    <!-- Header -->
+    <div style="padding:20px;border-bottom:1px solid #E5E7EB">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <button onclick="closeSearchPanel()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#9CA3AF">←</button>
+        <div style="flex:1">
+          <div style="font-size:11px;color:#9CA3AF;font-weight:600;text-transform:uppercase">Search Results</div>
+          <div style="font-size:18px;font-weight:700;color:#111827" id="searchPanelTitle">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sites list -->
+    <div style="flex:1;overflow-y:auto;padding:0">
+      <div id="searchPanelList" style="padding:0">
+        <!-- Sites populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Right panel - Portfolio site detail (shown when clicking site from portfolio) -->
+  <div style="width:380px;background:#fff;border-left:1px solid #E5E7EB;display:none;flex-direction:column;overflow:hidden;z-index:100" id="portfolioDetailPanel">
+    <!-- Header -->
+    <div style="padding:20px;border-bottom:1px solid #E5E7EB">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <button onclick="closePortfolioDetailPanel()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#9CA3AF">←</button>
+        <div style="flex:1">
+          <div style="font-size:11px;color:#9CA3AF;font-weight:600;text-transform:uppercase" id="portfolioDetailCity">—</div>
+          <div style="font-size:18px;font-weight:700;color:#111827" id="portfolioDetailName">—</div>
+        </div>
+        <button onclick="closePortfolioDetailPanel()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#9CA3AF">✕</button>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
+        <div style="width:12px;height:12px;border-radius:50%;background:#F59E0B" id="portfolioDetailRiskDot"></div>
+        <span style="font-weight:600;color:#B45309" id="portfolioDetailRiskBadge">ELEVATED</span>
+      </div>
+    </div>
+
+    <!-- Sites details -->
+    <div style="flex:1;overflow-y:auto;padding:0">
+      <div id="portfolioDetailContent" style="padding:0">
+        <!-- Details populated by JS -->
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SITE DETAIL VIEW
+══════════════════════════════════════ -->
+<div class="view" id="view-detail">
+<div class="detail-wrap">
+
+  <!-- ── Left sidebar ── -->
+  <div class="det-sidebar">
+    <div class="det-prop-card">
+      <div class="det-prop-num" id="detNum">1</div>
+      <div class="det-prop-info">
+        <div class="det-prop-name" id="detTitle">111 Boardman Ave NW, Boardman, OR, USA</div>
+        <div class="det-rec-lkly elevated" id="detRecLkly">REC LIKELIHOOD: ELEVATED</div>
+      </div>
+    </div>
+    <button class="det-si on" onclick="scrollToSec('cu',this)"><div class="det-si-icon">📋</div>Current Use</button>
+    <button class="det-si" onclick="scrollToSec('hu',this)"><div class="det-si-icon">🕐</div>Historical Use</button>
+    <button class="det-si" onclick="scrollToSec('sr',this)"><div class="det-si-icon">🔗</div>Surrounding Receptors</button>
+    <button class="det-si" onclick="scrollToSec('ps',this)"><div class="det-si-icon">🏔</div>Physical Setting</button>
+    <div class="det-sdiv"></div>
+    <div class="det-slabel">Quick Actions</div>
+    <button class="det-si"><div class="det-si-icon">📤</div>Share Report</button>
+    <button class="det-si"><div class="det-si-icon">📄</div>Export PDF</button>
+  </div>
+
+  <!-- ── Main content ── -->
+  <div class="det-main" id="detMain">
+
+    <!-- Page header -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+      <button onclick="goBack()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#9CA3AF;padding:8px;display:flex;align-items:center;justify-content:center">←</button>
+      <div style="font-size:13px;color:#9CA3AF;font-weight:500">Archive</div>
+    </div>
+    <div class="det-page-header">
+      <div class="det-crumb" id="detCrumb">ANALYSIS / BOARDMAN, OR</div>
+      <div class="det-page-title-row">
+        <div class="det-page-title" id="detPageTitle">111 Boardman Ave NW, Boardman, OR, USA</div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0">
+          <button class="det-add-docs" onclick="openUpload()">⊕ ADD DOCUMENTS</button>
+          <div class="det-last-updated">LAST UPDATED<br><strong id="detDate" style="color:#111827">May 15, 2026</strong></div>
+        </div>
+      </div>
+      <span class="det-analysis-badge" id="detAnalysisBadge">Initial Screen</span>
+    </div>
+
+    <div style="padding:24px 32px">
+
+      <!-- Hero card -->
+      <div class="hero-card">
+        <div class="hero-panel">
+          <div class="hl">Environmental Risk Rating <span id="heroPrelim" style="padding:2px 8px;border-radius:4px;background:rgba(255,255,255,.1);font-size:9px;font-weight:600;letter-spacing:.03em;color:rgba(255,255,255,.5);text-transform:uppercase">PRELIMINARY</span></div>
+          <div class="hgiant" id="heroRisk" style="color:#F59E0B">ELEVATED</div>
+        </div>
+        <div class="hero-panel">
+          <div class="hl">⚠ Key Risk Factors</div>
+          <ul class="hrlist" id="heroFactors">
+            <li class="hritem"><div><div class="hrtitle" style="color:rgba(255,255,255,.4);font-weight:400;font-style:italic">Upload documents for detailed risk analysis.</div></div></li>
+          </ul>
+        </div>
+        <div class="hero-panel">
+          <div class="hl">Data Completeness</div>
+          <div style="display:flex;align-items:baseline;gap:3px">
+            <span class="hscore" id="heroScore">6</span>
+            <span style="font-size:16px;color:rgba(255,255,255,.4);font-weight:600">/10</span>
+          </div>
+          <div class="hbar"><div class="hbar-fill" id="heroScoreBar" style="width:60%"></div></div>
+          <div class="hscan" style="margin-bottom:8px">Database Records <strong id="heroDbRec" style="color:rgba(255,255,255,.6)">6/10</strong></div>
+          <div class="hmiss-lbl">Missing Information:</div>
+          <div class="hmiss">Historical ownership records</div>
+          <div class="hmiss">Detailed historical use narrative</div>
+          <div class="hmiss" style="color:rgba(255,255,255,.3);font-style:italic">No documents uploaded yet</div>
+        </div>
+      </div>
+
+      <!-- Risk Analysis Summary -->
+      <div class="risk-summary-card">
+        <div class="risk-summary-header">Risk Analysis Summary</div>
+        <div class="risk-summary-text" id="riskSummaryText">This initial environmental screening assessment for the property based solely on regulatory database records indicates an elevated risk rating. Although no records were found directly associated with the property in the queried databases, several inactive hazardous waste handlers are located within close proximity, including nearby service stations approximately 0.14 miles east. The presence of these nearby facilities, despite their inactive status, suggests a historical industrial context that warrants further investigation. Additionally, the area has a notable OSHA inspection history with 93 inspections in the past decade, which may reflect broader industrial activity in the vicinity. This assessment is preliminary and should be followed by a field investigation to confirm the absence of any environmental liabilities.</div>
+      </div>
+
+      <!-- Mini map -->
+      <div style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;overflow:hidden;margin-bottom:20px">
+        <div style="padding:8px 14px;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;align-items:center;gap:0">
+            <span style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9CA3AF;margin-right:14px;flex-shrink:0">Map Layers</span>
+            <button class="layer-tab" style="padding:6px 12px;font-size:12px">🗺 Street Map</button>
+            <button class="layer-tab active" style="padding:6px 12px;font-size:12px">🛰 Satellite</button>
+            <button class="layer-tab" style="padding:6px 12px;font-size:12px">⛰ USGS Topo</button>
+          </div>
+          <span id="detCoords" style="font-size:11px;color:#9CA3AF">45.8395°, −119.7046° · <a style="color:#17A8C4;font-weight:600;text-decoration:none;cursor:pointer">Open in Google Maps ↗</a></span>
+        </div>
+        <div style="padding:6px 14px;border-bottom:1px solid #F3F4F6;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9CA3AF;margin-right:6px;flex-shrink:0">Overlays</span>
+          <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:600;background:#3B82F6;color:#fff;border:1.5px solid #3B82F6"><span style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.7);display:inline-block"></span>Flood Zones</span>
+          <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:600;background:#fff;color:#6B7280;border:1.5px solid #E5E7EB"><span style="width:6px;height:6px;border-radius:50%;background:#F59E0B;display:inline-block"></span>Radon Zones</span>
+          <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:600;background:#fff;color:#6B7280;border:1.5px solid #E5E7EB"><span style="width:6px;height:6px;border-radius:50%;background:#22C55E;display:inline-block"></span>Wetlands (NWI)</span>
+          <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:600;background:#fff;color:#6B7280;border:1.5px solid #E5E7EB"><span style="width:6px;height:6px;border-radius:50%;background:#06B6D4;display:inline-block"></span>Groundwater Flow</span>
+          <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:600;background:#fff;color:#6B7280;border:1.5px solid #E5E7EB"><span style="width:6px;height:6px;border-radius:50%;background:#3B82F6;display:inline-block"></span>Water Wells</span>
+          <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:14px;font-size:11px;font-weight:600;background:#fff;color:#6B7280;border:1.5px solid #E5E7EB"><span style="width:6px;height:6px;border-radius:50%;background:#EC4899;display:inline-block"></span>Vapor Encroachment</span>
+        </div>
+        <div style="height:220px;background:#2C3E2D;position:relative;overflow:hidden">
+          <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 30% 40%,rgba(40,60,35,.8) 0%,transparent 50%),radial-gradient(ellipse at 70% 30%,rgba(55,75,50,.6) 0%,transparent 40%),linear-gradient(160deg,#1E3A1E 0%,#2A4A2A 35%,#1C3020 65%,#243828 100%)"></div>
+          <svg style="position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none" viewBox="0 0 800 220" preserveAspectRatio="none"><line x1="0" y1="110" x2="800" y2="110" stroke="rgba(255,255,255,.07)" stroke-width="4"/><line x1="400" y1="0" x2="400" y2="220" stroke="rgba(255,255,255,.07)" stroke-width="4"/><line x1="0" y1="60" x2="800" y2="70" stroke="rgba(255,255,255,.04)" stroke-width="2"/></svg>
+          <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:10;text-align:center">
+            <div id="detMapPin" style="width:32px;height:32px;border-radius:50%;background:#1E40AF;border:3px solid #fff;box-shadow:0 0 0 4px rgba(30,64,175,.4),0 3px 12px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;margin:0 auto">1</div>
+          </div>
+          <div style="position:absolute;left:50%;top:50%;width:100px;height:100px;border-radius:50%;border:1.5px dashed rgba(245,158,11,.55);transform:translate(-50%,-50%);pointer-events:none;z-index:5"></div>
+          <div style="position:absolute;left:50%;top:50%;width:200px;height:200px;border-radius:50%;border:1.5px dashed rgba(245,158,11,.35);transform:translate(-50%,-50%);pointer-events:none;z-index:5"></div>
+          <div style="position:absolute;right:12px;top:12px;z-index:20;display:flex;flex-direction:column">
+            <div style="width:28px;height:28px;background:#fff;border:1px solid #D1D5DB;border-radius:4px 4px 0 0;border-bottom:none;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;color:#374151;font-weight:300">+</div>
+            <div style="width:28px;height:28px;background:#fff;border:1px solid #D1D5DB;border-radius:0 0 4px 4px;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;color:#374151;font-weight:300">−</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SITE INTELLIGENCE header -->
+      <div class="si-header">SITE INTELLIGENCE</div>
+
+      <!-- Current Use -->
+      <div class="si-section" id="sec-cu">
+        <div class="si-acc-header" onclick="toggleSec('cu')">
+          <div class="si-acc-title"><div class="si-acc-icon">📋</div>CURRENT USE</div>
+          <span class="si-acc-chevron" id="chev-cu" style="transform:rotate(180deg)">▲</span>
+        </div>
+        <div class="si-body open" id="body-cu">
+          <div class="cu-grid">
+            <div>
+              <div class="cu-row"><div class="cu-label">County</div><div class="cu-val" id="cuCounty">Morrow County</div></div>
+              <div class="cu-row"><div class="cu-label">Submarket</div><div class="cu-val" id="cuSubmarket">Boardman</div></div>
+              <div class="cu-row"><div class="cu-label">Owner</div><div class="cu-val nr">NR</div></div>
+              <div class="cu-row"><div class="cu-label">Current Use</div><div class="cu-val nr">NR</div></div>
+              <div class="cu-row"><div class="cu-label">NAICS / SIC Code</div><div class="cu-val nr">NR</div></div>
+              <div class="cu-row"><div class="cu-label">Underground Storage Tanks</div><div class="cu-val nr">NR</div></div>
+              <div class="cu-row"><div class="cu-label">Aboveground Storage Tanks</div><div class="cu-val nr">NR</div></div>
+              <div class="cu-row"><div class="cu-label">Hazardous Material Use</div><div class="cu-val nr">NR</div></div>
+              <div class="cu-row"><div class="cu-label">Permit Non-compliance</div><div class="cu-val nr">NR</div></div>
+            </div>
+            <div class="db-lookup">
+              <div class="db-lookup-title">Subject Property Database Lookup</div>
+              <div class="db-lookup-sub">Direct match of this address across federal &amp; state regulatory databases</div>
+              <div class="db-item"><span class="db-item-name">RCRAInfo Facility ↗</span><span class="db-item-result">— No results</span></div>
+              <div class="db-item"><span class="db-item-name">EnviroFacts ↗</span><span class="db-item-result">— No results</span></div>
+              <div class="db-item"><span class="db-item-name">ECHO ↗</span><span class="db-item-result">— No results</span></div>
+              <div class="db-item"><span class="db-item-name">FRS ↗</span><span class="db-item-result">— No results</span></div>
+              <div class="db-item"><span class="db-item-name">GeoTracker ↗</span><span class="db-item-result">— No results</span></div>
+              <div class="db-item"><span class="db-item-name">EnviroStor ↗</span><span class="db-item-result">— No results</span></div>
+              <div class="db-item"><span class="db-item-name">DTSC CORTESE ↗</span><span class="db-item-result">— No results</span></div>
+              <div class="db-item"><span class="db-item-name">CalRecycle SWF/LS ↗</span><span class="db-item-result">— No results</span></div>
+              <div class="db-found"><span class="db-found-ct">✓ 3 records</span><span class="db-item-name">EPA SEMS (Superfund) ↗</span></div>
+              <div class="db-item"><span class="db-item-name">EPA TRI ↗</span><span class="db-item-result">— No results</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Historical Use -->
+      <div class="si-section" id="sec-hu">
+        <div class="si-acc-header" onclick="toggleSec('hu')">
+          <div class="si-acc-title"><div class="si-acc-icon">🕐</div>HISTORICAL USE</div>
+          <span class="si-acc-chevron" id="chev-hu">▼</span>
+        </div>
+        <div class="si-body" id="body-hu">
+          <div class="ht-wrap">
+            <div class="ht-item">
+              <div class="ht-year">1940–1970</div><div class="ht-dot ht-dot-gap"></div>
+              <div class="ht-content"><div class="ht-name">Data Gap</div><div class="ht-desc">No available data for this period. The property's historical use is unknown.</div></div>
+            </div>
+            <div class="ht-item">
+              <div class="ht-year">1971–1985</div><div class="ht-dot ht-dot-active"></div>
+              <div class="ht-content">
+                <div class="ht-name">Boardman Texaco</div><div class="ht-tag">Boardman Texaco</div>
+                <div class="ht-desc">The property was likely used for automotive services, including fuel dispensing, which may pose environmental concerns due to potential petroleum contamination.</div>
+                <div class="ht-reg">Regulatory record (10)</div>
+              </div>
+            </div>
+            <div class="ht-item">
+              <div class="ht-year">1986–1995</div><div class="ht-dot ht-dot-active"></div>
+              <div class="ht-content">
+                <div class="ht-name">Main Street Sinclair</div><div class="ht-tag">Main Street Sinclair</div>
+                <div class="ht-desc">Continued use for automotive services, indicating potential environmental risks from petroleum products.</div>
+                <div class="ht-reg">Regulatory record (10)</div>
+              </div>
+            </div>
+            <div class="ht-item">
+              <div class="ht-year">1996–2005</div><div class="ht-dot ht-dot-active"></div>
+              <div class="ht-content">
+                <div class="ht-name">Devin Oil Co. Inc. (Boardman Chevron)</div><div class="ht-tag">Devin Oil Co. Inc. (Boardman Chevron)</div>
+                <div class="ht-desc">The property continued to operate as a service station, maintaining potential environmental concerns related to fuel storage and handling.</div>
+                <div class="ht-reg">Regulatory record (10)</div>
+              </div>
+            </div>
+            <div class="ht-item">
+              <div class="ht-year">2006–2015</div><div class="ht-dot ht-dot-active"></div>
+              <div class="ht-content">
+                <div class="ht-name">Boardman Mobil Service</div><div class="ht-tag">Boardman Mobil Service</div>
+                <div class="ht-desc">Automotive service operations persisted, with ongoing potential for petroleum-related environmental impacts.</div>
+                <div class="ht-reg">Regulatory record (10)</div>
+              </div>
+            </div>
+            <div class="ht-item">
+              <div class="ht-year">2016–2023</div><div class="ht-dot ht-dot-current"></div>
+              <div class="ht-content">
+                <div class="ht-name">Current Use</div>
+                <div class="ht-desc">Current use is not specified, but historical records suggest a legacy of automotive service operations with potential residual contamination.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Surrounding Receptors -->
+      <div class="si-section" id="sec-sr">
+        <div class="si-acc-header" onclick="toggleSec('sr')">
+          <div class="si-acc-title"><div class="si-acc-icon">🔗</div>SURROUNDING RECEPTORS</div>
+          <span class="si-acc-chevron" id="chev-sr">▼</span>
+        </div>
+        <div class="si-body" id="body-sr">
+          <div style="padding-top:14px">
+            <div class="cu-row"><div class="cu-label">Nearest Sensitive Receptor</div><div class="cu-val">0.08 mi — Boardman Elementary School</div></div>
+            <div class="cu-row"><div class="cu-label">Residential within 0.25 mi</div><div class="cu-val">Yes — 142 residential parcels</div></div>
+            <div class="cu-row"><div class="cu-label">Schools / Daycares</div><div class="cu-val">2 within 0.5 mi</div></div>
+            <div class="cu-row"><div class="cu-label">Water Supply Wells</div><div class="cu-val nr">NR</div></div>
+            <div class="cu-row"><div class="cu-label">Public Water Supply</div><div class="cu-val">Yes — municipal</div></div>
+            <div class="cu-row"><div class="cu-label">Wetlands (NWI)</div><div class="cu-val" style="color:#F59E0B;font-weight:600">8 within search radius</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Physical Setting -->
+      <div class="si-section" id="sec-ps">
+        <div class="si-acc-header" onclick="toggleSec('ps')">
+          <div class="si-acc-title"><div class="si-acc-icon">🏔</div>PHYSICAL SETTING</div>
+          <span class="si-acc-chevron" id="chev-ps">▼</span>
+        </div>
+        <div class="si-body" id="body-ps">
+          <div style="padding-top:14px">
+            <div style="font-size:12px;color:#9CA3AF;font-style:italic;margin-bottom:14px">Flood / radon / soil / geology / groundwater indicators for the parcel</div>
+            <div class="phys-grid">
+              <div class="phys-cell"><div class="phys-lbl">Flood Zone</div><div class="phys-val">X</div></div>
+              <div class="phys-cell"><div class="phys-lbl">SFHA Required</div><div class="phys-val green">No</div></div>
+              <div class="phys-cell"><div class="phys-lbl">Wetlands</div><div class="phys-val orange">8 within radius</div></div>
+              <div class="phys-cell"><div class="phys-lbl">GW Flow</div><div class="phys-val nr">NR</div></div>
+              <div class="phys-cell"><div class="phys-lbl">Groundwater Depth</div><div class="phys-val nr">NR</div></div>
+              <div class="phys-cell"><div class="phys-lbl">Elevation</div><div class="phys-val">306 ft<div class="phys-sub">Midslope</div></div></div>
+              <div class="phys-cell"><div class="phys-lbl">VEC Present</div><div class="phys-val green">No</div></div>
+              <div class="phys-cell"><div class="phys-lbl">Topography</div><div class="phys-val nr">NR</div></div>
+              <div class="phys-cell"><div class="phys-lbl">Soil Type</div><div class="phys-val" style="font-size:12.5px;font-weight:600">Quincy loamy fine sand<div class="phys-sub">Group A, 2–12% slopes</div></div></div>
+            </div>
+            <div style="font-size:12.5px;color:#6B7280;line-height:1.55;margin-bottom:16px"><strong style="color:#374151">Geology:</strong> Unconsolidated — Coarse-detrital — Sand, Unconsolidated — Fine-detrital — Silt, Unconsolidated — Coarse-detrital — Gravel (Qgs)</div>
+            <div class="wcard-label">Additional Hazardous Risks</div>
+            <table class="haz-table">
+              <thead><tr><th>Risk</th><th>Status</th><th>Finding</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Mold</strong></td><td><span class="haz-status">UNKNOWN</span></td><td>Not evaluated</td></tr>
+                <tr><td><strong>Asbestos (ACM)</strong></td><td><span class="haz-status">UNKNOWN</span></td><td>Not evaluated</td></tr>
+                <tr><td><strong>Radon</strong></td><td><span class="haz-status">UNKNOWN</span></td><td>Not evaluated</td></tr>
+                <tr><td><strong>PFAS / PFOA</strong></td><td><span class="haz-status">UNKNOWN</span></td><td>Not evaluated</td></tr>
+                <tr><td><strong>Lead-based Paint (LBP)</strong></td><td><span class="haz-status">UNKNOWN</span></td><td>Not evaluated</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /padding -->
+  </div><!-- /det-main -->
+</div><!-- /detail-wrap -->
+</div><!-- /view-detail -->
+
+<!-- UPLOAD MODAL -->
+<div class="modal-bg" id="uploadModal">
+  <div class="modal-box" style="width:540px">
+    <button class="modal-close" onclick="closeUpload()">✕</button>
+    <div class="modal-title">Upload</div>
+    <div class="modal-sub">All uploads are automatically added to the Archive.</div>
+
+    <!-- Upload type tabs -->
+    <div style="display:flex;gap:12px;margin-bottom:20px;border-bottom:1px solid #E5E7EB">
+      <button class="modal-tab" id="tab-portfolio" onclick="switchUploadMode('portfolio')">Portfolio</button>
+      <button class="modal-tab" id="tab-single" onclick="switchUploadMode('single')">Single Site</button>
+    </div>
+
+    <!-- SINGLE SITE MODE -->
+    <div id="mode-single" style="display:block">
+      <div class="field"><label>Documents</label><input id="udocs" placeholder="e.g. Phase I ESA, Phase II ESA, etc."/></div>
+      <div class="uzone" onclick="document.getElementById('uok-single').style.display='block'">
+        <div style="font-size:28px;margin-bottom:8px">📄</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:3px">Drop Phase I/II files here, or click to browse</div>
+        <div style="font-size:12px;color:#6B7280">.pdf, .docx, .xlsx</div>
+        <div id="uok-single" style="display:none;font-size:12px;font-weight:600;color:#17A8C4;margin-top:8px">✓ Files ready to upload</div>
+      </div>
+    </div>
+
+    <!-- PORTFOLIO MODE -->
+    <div id="mode-portfolio" style="display:none">
+      <div class="field"><label>Portfolio / Project Name</label><input id="uportname" placeholder="e.g. ARA Capital Q2 2026"/></div>
+      <div class="field"><label>Client / Insured</label><input id="uclient" placeholder="e.g. ARA Capital"/></div>
+      <div class="uzone" onclick="document.getElementById('uok-port').style.display='block'">
+        <div style="font-size:28px;margin-bottom:8px">📊</div>
+        <div style="font-size:14px;font-weight:600;margin-bottom:3px">Drop SOV file here, or click to browse</div>
+        <div style="font-size:12px;color:#6B7280">Schedule of Values (.xlsx, .csv)</div>
+        <div id="uok-port" style="display:none;font-size:12px;font-weight:600;color:#17A8C4;margin-top:8px">✓ SOV.xlsx · 10 sites detected</div>
+      </div>
+    </div>
+
+    <div class="modal-footer" style="margin-top:20px">
+      <button class="btn-out" onclick="closeUpload()">Cancel</button>
+      <button class="btn-dark-sm" onclick="handleUpload()">Add to Archive →</button>
+    </div>
+  </div>
+</div>
+
+<!-- SAVE TO PORTFOLIO MODAL -->
+<div class="modal-bg" id="saveModal">
+  <div class="modal-box" style="width:420px">
+    <button class="modal-close" onclick="document.getElementById('saveModal').classList.remove('on')">✕</button>
+    <div class="modal-title">Save to Portfolio</div>
+    <div class="modal-sub" id="saveSiteLbl">—</div>
+    <div class="field"><label>Create new portfolio</label><input id="newPortName" placeholder="Portfolio name…"/></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div style="flex:1;height:1px;background:#E5E7EB"></div><span style="font-size:11px;color:#9CA3AF">or add to existing</span><div style="flex:1;height:1px;background:#E5E7EB"></div></div>
+    <div class="sm-port-opt" onclick="saveConfirm('ARA Q2 2026')"><div><div class="sm-port-name">ARA Capital — Q2 2026</div><div class="sm-port-ct">10 sites</div></div><span style="color:#17A8C4;font-size:18px">+</span></div>
+    <div class="sm-port-opt" onclick="saveConfirm('Blackstone Industrial')"><div><div class="sm-port-name">Blackstone Industrial</div><div class="sm-port-ct">6 sites</div></div><span style="color:#17A8C4;font-size:18px">+</span></div>
+    <div class="modal-footer" style="margin-top:16px">
+      <button class="btn-out" onclick="document.getElementById('saveModal').classList.remove('on')">Cancel</button>
+      <button class="btn-dark-sm" onclick="saveNewPort()">Save →</button>
+    </div>
+  </div>
+</div>
+
+<!-- MATCH REVIEW MODAL -->
+<div class="modal-bg" id="matchModal">
+  <div class="modal-box" style="width:620px;max-height:80vh;overflow-y:auto">
+    <button class="modal-close" onclick="closeMatchModal()">✕</button>
+    <div class="modal-title">Match Reports to Portfolio Sites</div>
+    <div class="modal-sub" id="matchCount">16 confirmed, 4 need review</div>
+
+    <div id="matchItems" style="margin:20px 0;border-top:1px solid #E5E7EB;border-bottom:1px solid #E5E7EB">
+      <!-- Items will be populated by JavaScript -->
+    </div>
+
+    <div class="modal-footer" style="margin-top:20px">
+      <button class="btn-out" onclick="closeMatchModal()">Cancel</button>
+      <button class="btn-dark-sm" onclick="confirmMatches()">Confirm All &amp; Attach →</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── NAVIGATION ──
+function go(v) {
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.nav-link').forEach(x=>x.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('on');
+  if(v==='map'){ document.getElementById('mapv').classList.add('on'); document.getElementById('tab-map').classList.add('active'); }
+  else if(v==='pipeline') document.getElementById('tab-pipeline').classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ── OPEN PORTFOLIO ──
+function openPortfolio(name, siteCount, distrib, riskCounts) {
+  // Update portfolio diligence view header and stats
+  document.getElementById('portDilTitle').textContent = name;
+  document.getElementById('portDilAssetCount').textContent = siteCount;
+
+  // Calculate percentages
+  const total = riskCounts.high + riskCounts.elevated + riskCounts.low;
+  const lowPct = ((riskCounts.low / total) * 100).toFixed(0);
+  const elevPct = ((riskCounts.elevated / total) * 100).toFixed(0);
+  const highPct = ((riskCounts.high / total) * 100).toFixed(0);
+
+  // Create risk bar segments
+  const riskBar = document.getElementById('portDilRiskBar');
+  riskBar.innerHTML = `
+    <div class="rec-fill" style="width:${lowPct}%;background:#17A8C4"></div>
+    <div class="rec-fill" style="width:${elevPct}%;background:#F59E0B"></div>
+    <div class="rec-fill" style="width:${highPct}%;background:#EF4444"></div>
+  `;
+
+  // Update risk distribution legend
+  const riskBarParent = riskBar.parentElement;
+  const legend = riskBarParent.querySelector('div[style*="gap:20px"]');
+  if(legend) {
+    legend.innerHTML = `
+      <div style="display:flex;align-items:center;gap:6px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#17A8C4"></div>
+        <span style="color:#17A8C4">${lowPct}% LOW</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#F59E0B"></div>
+        <span style="color:#F59E0B">${elevPct}% ELEVATED</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div style="width:8px;height:8px;border-radius:50%;background:#EF4444"></div>
+        <span style="color:#EF4444">${highPct}% HIGH</span>
+      </div>
+    `;
+  }
+
+  // Populate sites table
+  const tbody = document.getElementById('portDilTableBody');
+  tbody.innerHTML = `
+    <tr onclick="openDetail('540 W Woodbury Rd','Altadena, CA','High','ARA Q2 2026')">
+      <td style="padding:18px 12px 18px 24px"><div class="cb"></div></td>
+      <td><div class="prop-cell"><div><div class="prop-name">540 W Woodbury Rd, Altadena, CA</div><div class="prop-addr">Altadena, CA 91001</div></div></div></td>
+      <td><div class="rec-wrap"><div class="rec-bar"><div class="rec-fill" style="width:100%;background:#EF4444"></div></div><span class="rec-label rec-high">High</span></div></td>
+      <td style="text-align:center;font-weight:600;color:#111827">1</td>
+      <td><div><div class="badge-chip">Document Analysis</div></div></td>
+      <td style="font-size:12px;color:#6B7280">May 15, 2026</td>
+    </tr>
+    <tr onclick="openDetail('McCook Logistics Ctr','McCook, IL','High','ARA Q2 2026')">
+      <td style="padding:18px 12px 18px 24px"><div class="cb"></div></td>
+      <td><div class="prop-cell"><div><div class="prop-name">McCook Logistics Ctr, McCook, IL</div><div class="prop-addr">McCook, IL 60652</div></div></div></td>
+      <td><div class="rec-wrap"><div class="rec-bar"><div class="rec-fill" style="width:100%;background:#EF4444"></div></div><span class="rec-label rec-high">High</span></div></td>
+      <td style="text-align:center;font-weight:600;color:#111827">1</td>
+      <td><div><div class="badge-chip">Document Analysis</div></div></td>
+      <td style="font-size:12px;color:#6B7280">May 10, 2026</td>
+    </tr>
+    <tr onclick="openDetail('3444 West 500 South','Salt Lake City, UT','Elevated','ARA Q2 2026')">
+      <td style="padding:18px 12px 18px 24px"><div class="cb"></div></td>
+      <td><div class="prop-cell"><div><div class="prop-name">3444 West 500 South, Salt Lake City, UT</div><div class="prop-addr">Salt Lake City, UT 84115</div></div></div></td>
+      <td><div class="rec-wrap"><div class="rec-bar"><div class="rec-fill" style="width:60%;background:#F59E0B"></div></div><span class="rec-label rec-elevated">Elevated</span></div></td>
+      <td style="text-align:center;font-weight:600;color:#111827">1</td>
+      <td><div><div class="badge-chip">Document Analysis</div></div></td>
+      <td style="font-size:12px;color:#6B7280">May 12, 2026</td>
+    </tr>
+  `;
+
+  go('portfolio-diligence');
+}
+
+// ── CLOSE SEARCH PANEL ──
+function closeSearchPanel() {
+  document.getElementById('searchPanel').style.display = 'none';
+}
+
+function showPortfolioPanel(portfolioName, numSites) {
+  // Close any open detail view
+  const detailView = document.getElementById('view-detail');
+  if(detailView) detailView.classList.remove('on');
+
+  document.getElementById('portfolioPanel').style.display = 'flex';
+  document.getElementById('portfolioPanelTitle').textContent = portfolioName;
+  document.getElementById('portfolioPanelAssetCount').textContent = numSites;
+
+  // Populate with portfolio sites
+  const list = document.getElementById('portfolioPanelList');
+  const sites = [
+    {name: 'FedEx Queens', addr: 'Queens, NY 11413', risk: 'ELEVATED'},
+    {name: 'Grandstone at Sunrise', addr: 'Sunrise, FL 33351', risk: 'ELEVATED'}
+  ];
+
+  list.innerHTML = sites.map(s => `
+    <div onclick="navigateToSite('${s.name}', '${s.addr}', '${s.risk}')" style="padding:8px 10px;border-bottom:1px solid #e5e7eb;cursor:pointer;background:#f3f4f6;hover:background:#e5e7eb">
+      <div style="font-size:11px;font-weight:600;color:#111827;margin-bottom:3px">${s.name}</div>
+      <div style="font-size:9px;color:#6b7280;margin-bottom:4px">${s.addr}</div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div style="width:6px;height:6px;border-radius:50%;background:${s.risk==='HIGH'?'#EF4444':'#F59E0B'}"></div>
+        <span style="font-size:8px;font-weight:600;color:${s.risk==='HIGH'?'#991B1B':'#B45309'}">${s.risk}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function closePortfolioPanel() {
+  document.getElementById('portfolioPanel').style.display = 'none';
+}
+
+function closePortfolioDetailPanel() {
+  document.getElementById('portfolioDetailPanel').style.display = 'none';
+}
+
+function navigateToSite(name, addr, risk) {
+  // Parse address for city/state
+  const parts = addr ? addr.split(',') : [];
+  const city = parts.length >= 2 ? (parts[0].trim() + ', ' + parts[1].trim()) : (addr || 'SITE');
+
+  // Update the right-side detail panel header
+  document.getElementById('portfolioDetailCity').textContent = city.toUpperCase();
+  document.getElementById('portfolioDetailName').textContent = name;
+  document.getElementById('portfolioDetailRiskDot').style.background = risk==='HIGH'?'#EF4444':'#F59E0B';
+  document.getElementById('portfolioDetailRiskBadge').textContent = risk;
+  document.getElementById('portfolioDetailRiskBadge').style.color = risk==='HIGH'?'#991B1B':'#B45309';
+
+  // Show site details in the right panel
+  const detailContent = document.getElementById('portfolioDetailContent');
+  detailContent.innerHTML = `
+    <div style="padding:16px;overflow-y:auto">
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:8px">RISK CLASSIFICATION</div>
+        <div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:${risk==='HIGH'?'#FEE2E2':'#FEF3C7'};border-radius:6px">
+          <div style="width:10px;height:10px;border-radius:50%;background:${risk==='HIGH'?'#EF4444':'#F59E0B'}"></div>
+          <span style="font-weight:600;color:${risk==='HIGH'?'#991B1B':'#B45309'}">${risk}</span>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:8px">CURRENT USE</div>
+        <div style="font-size:14px;color:#111827;font-weight:600">Residential — Single Family</div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:8px">HISTORICAL USE</div>
+        <div style="font-size:12px;color:#111827">
+          <div style="margin-bottom:12px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+              <div style="width:8px;height:8px;border-radius:50%;border:2px solid #17A8C4;background:#fff"></div>
+              <span style="font-weight:600;color:#9CA3AF">Pre-1960</span>
+            </div>
+            <div style="margin-left:20px">Undeveloped / Agricultural</div>
+          </div>
+          <div style="margin-bottom:12px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+              <div style="width:8px;height:8px;border-radius:50%;border:2px solid #9CA3AF;background:#fff"></div>
+              <span style="font-weight:600;color:#9CA3AF">1960–1985</span>
+            </div>
+            <div style="margin-left:20px">Industrial / Commercial operations</div>
+          </div>
+          <div style="margin-bottom:12px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+              <div style="width:8px;height:8px;border-radius:50%;border:2px solid #F59E0B;background:#F59E0B"></div>
+              <span style="font-weight:600;color:#B45309">1985–2010</span>
+            </div>
+            <div style="margin-left:20px;color:#B45309">Former dry cleaning / solvent use</div>
+          </div>
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+              <div style="width:8px;height:8px;border-radius:50%;border:2px solid #9CA3AF;background:#fff"></div>
+              <span style="font-weight:600;color:#9CA3AF">2010–Present</span>
+            </div>
+            <div style="margin-left:20px">Residential — Single Family</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:8px">RECS / HRECS / CRECS / AREAS OF CONCERN</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <div style="padding:6px 12px;background:#FEE2E2;border-radius:6px;font-size:12px;font-weight:600;color:#991B1B">REC x2</div>
+          <div style="padding:6px 12px;background:#FEF3C7;border-radius:6px;font-size:12px;font-weight:600;color:#B45309">HREC x1</div>
+          <div style="padding:6px 12px;background:#EDE9FE;border-radius:6px;font-size:12px;font-weight:600;color:#6D28D9">AOC x1</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:8px">UNDERGROUND STORAGE TANKS</div>
+        <div style="font-size:13px;color:#111827">Active UST present · Former UST removed 2019</div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:8px">ABOVEGROUND STORAGE TANKS</div>
+        <div style="font-size:13px;color:#111827">None</div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:8px">KNOWN / SUSPECTED POLLUTION</div>
+        <div style="padding:12px;background:#FEE2E2;border-radius:6px;border:1px solid #FECACA">
+          <div style="font-weight:600;color:#991B1B;margin-bottom:6px">PFAS / PCE</div>
+          <div style="font-size:12px;color:#374151;margin-bottom:4px"><span style="font-weight:600">Media:</span> Groundwater, Soil Vapor</div>
+          <div style="font-size:12px;color:#374151;margin-bottom:4px"><span style="font-weight:600">Case #:</span> LA-2019-04471</div>
+          <div style="font-size:12px;color:#374151"><span style="font-weight:600">Restrictions:</span> No GW use</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:8px">CURRENTLY IN REGULATORY PROGRAM</div>
+        <div style="font-size:13px;color:#991B1B;font-weight:600">Yes — LUFT + VCP (CalEPA)</div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;color:#9CA3AF;font-weight:600;text-transform:uppercase;margin-bottom:8px">DEPTH TO GROUNDWATER</div>
+        <div style="font-size:13px;color:#111827">18–22 ft bgs</div>
+      </div>
+
+      <button onclick="openDetail('${name}', '${addr}', '${risk}', '')" style="width:100%;padding:12px;background:#111827;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;margin-top:20px">↗ Expand Full Report</button>
+      <button onclick="showAddToPortfolioOptions('${name}', '${addr}', '${risk}')" style="width:100%;padding:12px;background:#fff;color:#111827;border:1px solid #E5E7EB;border-radius:6px;font-weight:600;cursor:pointer;margin-top:10px">📂 Add to Portfolio</button>
+      <button onclick="addToArchive('${name}')" style="width:100%;padding:12px;background:#fff;color:#111827;border:1px solid #E5E7EB;border-radius:6px;font-weight:600;cursor:pointer;margin-top:10px">📁 Add to Archive</button>
+    </div>
+  `;
+
+  // Show the right-side detail panel
+  document.getElementById('portfolioDetailPanel').style.display = 'flex';
+
+  // Mark that we're viewing a site
+  window.currentPortfolioSite = name;
+}
+
+function backToPortfolioList() {
+  // Return to portfolio list view
+  const panel = document.getElementById('portfolioPanel');
+  const header = panel.querySelector('[style*="padding:20px"]');
+
+  // Restore portfolio list header
+  header.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <button onclick="closePortfolioPanel()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#9CA3AF">×</button>
+      <div style="flex:1">
+        <div style="font-size:11px;color:#9CA3AF;font-weight:600;text-transform:uppercase">Portfolio</div>
+        <div style="font-size:18px;font-weight:700;color:#111827" id="portfolioPanelTitle">Test Portfolio</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;font-size:12px">
+      <div>
+        <div style="color:#9CA3AF;font-weight:600">Assets</div>
+        <div style="font-size:16px;font-weight:700;color:#111827" id="portfolioPanelAssetCount">2</div>
+      </div>
+    </div>
+  `;
+
+  // Restore portfolio list
+  const list = document.getElementById('portfolioPanelList');
+  const sites = [
+    {name: 'FedEx Queens', addr: 'Queens, NY 11413', risk: 'ELEVATED'},
+    {name: 'Grandstone at Sunrise', addr: 'Sunrise, FL 33351', risk: 'ELEVATED'}
+  ];
+
+  list.innerHTML = sites.map(s => `
+    <div onclick="navigateToSite('${s.name}', '${s.addr}', '${s.risk}')" style="padding:8px 10px;border-bottom:1px solid #e5e7eb;cursor:pointer;background:#f3f4f6;hover:background:#e5e7eb">
+      <div style="font-size:11px;font-weight:600;color:#111827;margin-bottom:3px">${s.name}</div>
+      <div style="font-size:9px;color:#6b7280;margin-bottom:4px">${s.addr}</div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div style="width:6px;height:6px;border-radius:50%;background:${s.risk==='HIGH'?'#EF4444':'#F59E0B'}"></div>
+        <span style="font-size:8px;font-weight:600;color:${s.risk==='HIGH'?'#991B1B':'#B45309'}">${s.risk}</span>
+      </div>
+    </div>
+  `).join('');
+
+  delete window.currentPortfolioSite;
+}
+
+// ── OPEN DETAIL ──
+function openDetail(name, addr, risk, portfolio) {
+  // Track that we're viewing a site (for back button)
+  window.viewingFromPortfolio = portfolio && portfolio !== '';
+
+  // Close portfolio panel when opening detail view from map
+  if(!window.viewingFromPortfolio) {
+    closePortfolioPanel();
+  }
+
+  const full = name + (addr ? ', ' + addr : '');
+  document.getElementById('detTitle').textContent = full;
+  document.getElementById('detPageTitle').textContent = full;
+  // Risk likelihood
+  const rl = document.getElementById('detRecLkly');
+  rl.textContent = 'REC LIKELIHOOD: ' + risk.toUpperCase();
+  rl.className = 'det-rec-lkly ' + (risk==='High'?'high':risk==='Elevated'?'elevated':'low');
+  // Breadcrumb — show "CITY, STATE"
+  const parts = addr ? addr.split(',') : [];
+  const city = parts.length >= 2 ? (parts[0].trim() + ', ' + parts[1].trim()) : (addr||'SITE');
+  document.getElementById('detCrumb').textContent = 'ANALYSIS / ' + city.toUpperCase();
+  // Hero risk
+  const colors = {High:'#EF4444', Elevated:'#F59E0B', Low:'#17A8C4'};
+  document.getElementById('heroRisk').textContent = risk.toUpperCase();
+  document.getElementById('heroRisk').style.color = colors[risk]||'#F59E0B';
+  // Scroll back to top
+  const dm = document.getElementById('detMain');
+  if(dm) dm.scrollTop = 0;
+  go('detail');
+}
+
+// ── ACCORDION / NAV ──
+function toggleSec(id) {
+  const body = document.getElementById('body-'+id);
+  const chev = document.getElementById('chev-'+id);
+  const open = body.classList.toggle('open');
+  chev.style.transform = open ? 'rotate(180deg)' : '';
+  chev.textContent = open ? '▲' : '▼';
+}
+function scrollToSec(id, btn) {
+  // expand the section if collapsed
+  const body = document.getElementById('body-'+id);
+  if(!body.classList.contains('open')) toggleSec(id);
+  document.getElementById('sec-'+id).scrollIntoView({behavior:'smooth',block:'start'});
+  // active state
+  document.querySelectorAll('.det-sidebar .det-si').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+// ── MAP SEARCH ──
+function doSearch() {
+  const v = document.getElementById('mapSrch').value.trim();
+  if(!v) return;
+  closeSidebar();
+  document.getElementById('mapEmpty').style.display='none';
+  document.getElementById('searchPins').style.display='block';
+  document.getElementById('radiusRings').style.display='block';
+  document.getElementById('mapCoords').textContent = '45.8395°, −119.7046°';
+  openPanel('main', v);
+}
+
+// ── OVERLAY PILLS ──
+const pillColors = {'Flood Zones':'#3B82F6','Radon Zones':'#F59E0B','Wetlands (NWI)':'#22C55E','Groundwater Flow':'#06B6D4','Water Wells':'#3B82F6','Vapor Encroachment':'#EC4899'};
+function togglePill(el) {
+  const on = el.classList.toggle('on');
+  const label = el.textContent.trim();
+  if(on) { el.style.background=pillColors[label]||'#6B7280'; el.style.borderColor=pillColors[label]||'#6B7280'; el.querySelector('.pill-dot').style.background='rgba(255,255,255,.7)'; }
+  else { el.style.background=''; el.style.borderColor=''; el.querySelector('.pill-dot').style.background=pillColors[label]||'#6B7280'; }
+}
+
+// ── SIDEBAR PANEL ──
+const siteData = {
+  main: { name:'540 W Woodbury Rd', city:'Altadena, CA 91001 · Queried site', risk:'HIGH', knowPoll:true, contam:'PFAS / PCE', media:'Groundwater, Soil Vapor', caseNo:'LA-2019-04471', restrict:'No GW use', ust:'Active UST present · Former UST removed 2019', ast:'None', regProg:'Yes — LUFT + VCP (CalEPA)', gwDepth:'18–22 ft bgs', currentUse:'Residential — Single Family', portfolio:'' },
+  n1:  { name:'Eastside Cleaners', city:'0.18 mi · Listed site', risk:'HIGH', knowPoll:true, contam:'PCE, TCE', media:'Groundwater', caseNo:'LA-2019-04470', restrict:'No GW use', ust:'Active UST · Former UST', ast:'None', regProg:'Yes — LUFT (CalEPA)', gwDepth:'16–20 ft bgs', currentUse:'Commercial — Dry Cleaning', portfolio:'' },
+  n2:  { name:'Columbia Industrial Site', city:'0.31 mi · Monitoring site', risk:'ELEVATED', knowPoll:true, contam:'Petroleum HC (BTEX)', media:'Soil', caseNo:'LA-2018-03312', restrict:'None', ust:'Former UST (removed)', ast:'None', regProg:'No — NFA issued 2022', gwDepth:'20 ft bgs', currentUse:'Light Industrial', portfolio:'' },
+  n3:  { name:'Woodbury Gas Station', city:'0.44 mi · Listed site', risk:'ELEVATED', knowPoll:true, contam:'BTEX', media:'Soil Vapor', caseNo:'LA-2020-05511', restrict:'None', ust:'Active UST', ast:'None', regProg:'Yes — LUST monitoring', gwDepth:'19 ft bgs', currentUse:'Commercial — Gas Station', portfolio:'' },
+  n4:  { name:'Mariposa Retail Center', city:'0.57 mi · No listings', risk:'LOW', knowPoll:false, contam:'—', media:'—', caseNo:'—', restrict:'None', ust:'None', ast:'None', regProg:'No', gwDepth:'22 ft bgs', currentUse:'Commercial — Retail', portfolio:'' },
+  n5:  { name:'Woodbury Apartments', city:'0.36 mi · No listings', risk:'LOW', knowPoll:false, contam:'—', media:'—', caseNo:'—', restrict:'None', ust:'None', ast:'None', regProg:'No', gwDepth:'21 ft bgs', currentUse:'Residential — Multi-family', portfolio:'' },
+  pp1: { name:'540 W Woodbury Rd', city:'Altadena, CA', risk:'HIGH', knowPoll:true, contam:'PFAS, PCE', media:'Groundwater', caseNo:'LA-2019-04471', restrict:'No GW use', ust:'Active UST', ast:'None', regProg:'Yes', gwDepth:'18–22 ft', currentUse:'Residential', portfolio:'ARA Q2 2026' },
+  pp2: { name:'McCook Logistics Ctr', city:'McCook, IL', risk:'HIGH', knowPoll:true, contam:'Petroleum HC', media:'Soil, GW', caseNo:'IL-2020-08831', restrict:'None', ust:'Active UST', ast:'Former AST', regProg:'Yes', gwDepth:'12 ft', currentUse:'Industrial', portfolio:'ARA Q2 2026' },
+  pp3: { name:'2750 W 900 South', city:'Salt Lake City, UT', risk:'ELEVATED', knowPoll:false, contam:'ACM suspected', media:'Building materials', caseNo:'—', restrict:'None', ust:'None', ast:'None', regProg:'No', gwDepth:'30 ft', currentUse:'Industrial', portfolio:'Blackstone' },
+  pp4: { name:'Edens Collection', city:'Northbrook, IL', risk:'ELEVATED', knowPoll:true, contam:'Petroleum HC', media:'Soil', caseNo:'IL-2019-07722', restrict:'None', ust:'Former UST (removed)', ast:'None', regProg:'No — NFA pending', gwDepth:'8 ft', currentUse:'Commercial', portfolio:'ARA Q2 2026' },
+  pp5: { name:'203 Church St', city:'Memphis, TN', risk:'LOW', knowPoll:false, contam:'—', media:'—', caseNo:'—', restrict:'None', ust:'None', ast:'None', regProg:'No', gwDepth:'15 ft', currentUse:'Commercial', portfolio:'Prologis SE' },
+};
+
+function sidebarHTML(key, searchName) {
+  const d = siteData[key] || siteData['main'];
+  const riskColor = d.risk==='HIGH'?'#B91C1C':d.risk==='ELEVATED'?'#B45309':'#0E7490';
+  const riskBg = d.risk==='HIGH'?'#FEE2E2':d.risk==='ELEVATED'?'#FEF3C7':'#E0F7FA';
+  return `
+    ${d.portfolio?`<div class="sb-section" style="padding-top:0;margin-bottom:0"><span class="badge bt" style="margin-bottom:10px">📁 ${d.portfolio}</span></div>`:''}
+    <div class="sb-section">
+      <div class="sb-field-label">Risk Classification</div>
+      <div style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;background:${riskBg};font-size:13px;font-weight:700;color:${riskColor}">● ${d.risk}</div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-field-label">Current Use</div>
+      <div class="sb-field-val">${d.currentUse}</div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-field-label">Historical Use</div>
+      <div class="timeline">
+        <div class="tl-item"><div class="tl-dot"></div><div class="tl-year">Pre-1960</div><div class="tl-use">Undeveloped / Agricultural</div></div>
+        <div class="tl-item"><div class="tl-dot"></div><div class="tl-year">1960–1985</div><div class="tl-use">Industrial / Commercial operations</div></div>
+        <div class="tl-item"><div class="tl-dot" style="background:#F59E0B"></div><div class="tl-year">1985–2010</div><div class="tl-use" style="color:#B45309">Former dry cleaning / solvent use</div></div>
+        <div class="tl-item"><div class="tl-dot"></div><div class="tl-year">2010–Present</div><div class="tl-use">${d.currentUse}</div></div>
+      </div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-field-label">RECs / HRECs / CRECs / Areas of Concern</div>
+      <div class="rec-tags">
+        ${d.risk==='HIGH'?'<span class="rtag rtag-rec">REC ×2</span><span class="rtag rtag-hrec">HREC ×1</span><span class="rtag rtag-aoc">AOC ×1</span>':d.risk==='ELEVATED'?'<span class="rtag rtag-hrec">HREC ×1</span><span class="rtag rtag-demin">de minimis ×1</span>':'<span class="rtag rtag-none">None identified</span>'}
+      </div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-field-label">Underground Storage Tanks</div>
+      <div class="sb-field-val">${d.ust}</div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-field-label">Aboveground Storage Tanks</div>
+      <div class="sb-field-val">${d.ast}</div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-field-label">Known / Suspected Pollution</div>
+      ${d.knowPoll?`
+        <div class="poll-box ${d.risk==='ELEVATED'?'elevated':''}">
+          <div class="poll-name ${d.risk==='ELEVATED'?'elevated':''}">${d.contam}</div>
+          <div class="poll-grid">
+            <div class="poll-kv"><span>Media:</span> ${d.media}</div>
+            <div class="poll-kv"><span>Case #:</span> ${d.caseNo}</div>
+            <div class="poll-kv" style="grid-column:1/-1"><span>Restrictions:</span> ${d.restrict}</div>
+          </div>
+        </div>`:
+        `<div class="poll-box none"><div class="poll-name none">No known or suspected pollution</div></div>`}
+    </div>
+    <div class="sb-section">
+      <div class="sb-field-label">Currently in Regulatory Program</div>
+      <div class="sb-field-val" style="color:${d.regProg.startsWith('Yes')?'#B91C1C':'#15803D'};font-weight:600">${d.regProg}</div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-field-label">Depth to Groundwater</div>
+      <div class="sb-field-val">${d.gwDepth}</div>
+    </div>
+    <button class="expand-btn" onclick="openDetailFromMap('${d.name}','${d.city}','${d.risk}','${d.portfolio||'No portfolio'}')">↗ Expand Full Report</button>
+    <button class="save-to-port" onclick="showAddToPortfolioOptions('${d.name}', '${d.city.split('·')[0].trim()}', '${d.risk}')">📂 Add to Portfolio</button>
+    <button class="save-to-port" onclick="addToArchive('${d.name}, ${d.city.split('·')[0].trim()}')">📁 Add to Archive</button>
+  `;
+}
+
+function openPanel(key, searchName) {
+  const d = siteData[key]||siteData['main'];
+  const name = searchName && key==='main' ? searchName.split(',')[0] : d.name;
+  document.getElementById('sbAddr').textContent = name;
+  document.getElementById('sbCity').textContent = d.city;
+  document.getElementById('sbBody').innerHTML = sidebarHTML(key, searchName);
+  document.getElementById('mapSidebar').classList.add('on');
+}
+
+function closeSidebar() { document.getElementById('mapSidebar').classList.remove('on'); }
+
+function openDetailFromMap(name, addr, risk, portfolio) {
+  // Normalize risk casing
+  const riskTitle = risk.charAt(0).toUpperCase() + risk.slice(1).toLowerCase();
+  openDetail(name, addr, riskTitle, portfolio);
+  // override back button to return to map
+  document.querySelectorAll('.det-sidebar .det-si').forEach(b=>b.classList.remove('on'));
+}
+
+// ── UPLOAD ──
+let uploadMode = 'single';
+function openUpload() {
+  document.getElementById('uploadModal').classList.add('on');
+  switchUploadMode('portfolio');
+}
+function closeUpload() {
+  document.getElementById('uploadModal').classList.remove('on');
+  document.getElementById('uok-single').style.display='none';
+  document.getElementById('uok-port').style.display='none';
+  document.getElementById('udocs').value='';
+  document.getElementById('uportname').value='';
+  document.getElementById('uclient').value='';
+}
+function switchUploadMode(mode) {
+  uploadMode = mode;
+  document.querySelectorAll('.modal-tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('tab-'+mode).classList.add('on');
+  document.getElementById('mode-single').style.display = mode==='single'?'block':'none';
+  document.getElementById('mode-portfolio').style.display = mode==='portfolio'?'block':'none';
+}
+function handleUpload() {
+  if(uploadMode==='single') uploadSingleSite();
+  else uploadPortfolio();
+}
+function uploadSingleSite() {
+  const addr = document.getElementById('usite').value.trim();
+  const docs = document.getElementById('udocs').value.trim();
+  if(!addr) { alert('Please enter a property address'); return; }
+
+  closeUpload();
+  closeSidebar();
+  go('pipeline');
+
+  // Add row to pipeline
+  const tbody = document.getElementById('pipeTableBody');
+  const siteNum = tbody.querySelectorAll('tr').length + 1;
+  const tr = document.createElement('tr');
+  tr.onclick = ()=>openDetail(addr,addr,'Elevated','Single Upload');
+  tr.innerHTML = `
+    <td style="padding:18px 12px 18px 24px"><div class="cb"></div></td>
+    <td><div class="prop-cell"><div class="prop-num">${siteNum}</div><div><div class="prop-name">${addr}</div><div class="prop-addr">${addr}</div></div></div></td>
+    <td><div class="rec-wrap"><div class="rec-bar"><div class="rec-fill" style="width:55%;background:#F59E0B"></div></div><span class="rec-label rec-elevated">Elevated</span></div></td>
+    <td><div><div class="badge-chip">Document Analysis</div></div></td>
+    <td><div class="doc-cell">${docs?'1 DOC':''}<div class="doc-add">+</div></div></td>`;
+  tbody.appendChild(tr);
+
+  showToast('Site added to pipeline with documents');
+}
+function uploadPortfolio() {
+  const name = document.getElementById('uportname').value.trim()||'New Portfolio';
+  closeUpload();
+  closeSidebar();
+  go('map');
+  document.getElementById('mapEmpty').style.display='none';
+  document.getElementById('portPins').style.display='block';
+  // Add rows to pipeline
+  addToPipeline(name);
+  showToast('Portfolio "'+name+'" loaded on map');
+  // Show match review modal if multiple Phase Is uploaded
+  const numDocs = 4; // In real implementation, count actual uploaded files
+  setTimeout(()=>openMatchModal(numDocs), 500);
+}
+
+function addToPipeline(name) {
+  const tbody = document.getElementById('pipeTableBody');
+  const sites = [['FedEx Queens','Queens, NY 11413'],['Grandstone at Sunrise','Sunrise, FL 33351']];
+  sites.forEach(([n,a],i)=>{
+    const tr = document.createElement('tr');
+    tr.onclick = ()=>openDetail(n,a,'Elevated',name);
+    tr.innerHTML = `
+      <td style="padding:18px 12px 18px 24px"><div class="cb"></div></td>
+      <td><div class="prop-cell"><div class="prop-num">${i+11}</div><div><div class="prop-name">${n}</div><div class="prop-addr">${a}</div></div></div></td>
+      <td><div class="rec-wrap"><div class="rec-bar"><div class="rec-fill" style="width:10%;background:#9CA3AF"></div></div><span class="rec-label" style="color:#9CA3AF">Analyzing…</span></div></td>
+      <td><div><div class="badge-chip">Initial Screen</div><div class="analyzing"><span class="spin">↻</span>Analyzing…</div></div></td>
+      <td><div class="doc-cell"><div class="doc-add">+</div></div></td>
+      <td><button class="action-btn">SELECT ACTION <span class="action-chevron">▾</span></button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── SAVE TO PORTFOLIO ──
+function openSave(siteName) {
+  document.getElementById('saveSiteLbl').textContent = siteName;
+  document.getElementById('newPortName').value='';
+  document.getElementById('saveModal').classList.add('on');
+}
+function saveConfirm(port) {
+  document.getElementById('saveModal').classList.remove('on');
+  showToast('Saved to "'+port+'"');
+}
+function saveNewPort() {
+  const n = document.getElementById('newPortName').value.trim();
+  if(!n) return;
+  document.getElementById('saveModal').classList.remove('on');
+  showToast('Created portfolio "'+n+'"');
+}
+function addToArchive(siteName) {
+  showToast('Added to Archive');
+}
+
+function addPortfolioToArchive() {
+  showToast('Portfolio added to Archive');
+}
+
+function showAddToPortfolioOptions(siteName, addr, risk) {
+  // Mock portfolio list - in a real app this would come from backend
+  const portfolios = [
+    { name: 'Test Portfolio 2', id: 1 },
+    { name: 'Active Projects', id: 2 },
+    { name: 'Client Assessment', id: 3 }
+  ];
+
+  if(portfolios.length === 0) {
+    showToast('No portfolios available');
+    return;
+  }
+
+  // Create a simple modal to select portfolio
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000';
+  modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
+
+  const content = document.createElement('div');
+  content.style.cssText = 'background:#fff;border-radius:8px;padding:24px;max-width:400px;width:90%';
+
+  content.innerHTML = `
+    <div style="font-size:18px;font-weight:700;margin-bottom:16px;color:#111827">Add to Portfolio</div>
+    <div style="margin-bottom:20px;font-size:14px;color:#6B7280">${siteName}</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+      ${portfolios.map(p => `
+        <button onclick="addSiteToPortfolio('${siteName}', '${addr}', '${risk}', '${p.name}')" style="padding:12px;background:#F3F4F6;border:1px solid #E5E7EB;border-radius:6px;text-align:left;cursor:pointer;font-weight:500;color:#111827;transition:background 0.2s">
+          ${p.name}
+        </button>
+      `).join('')}
+    </div>
+    <button onclick="this.closest('div').parentElement.remove()" style="width:100%;padding:10px;background:#f3f4f6;border:none;border-radius:6px;cursor:pointer;font-weight:500;color:#111827">Cancel</button>
+  `;
+
+  modal.appendChild(content);
+  document.body.appendChild(modal);
+}
+
+function addSiteToPortfolio(siteName, addr, risk, portfolioName) {
+  // Remove the modal
+  const modal = document.querySelector('div[style*="position:fixed"][style*="inset:0"]');
+  if(modal) modal.remove();
+  showToast(`Added to ${portfolioName}`);
+}
+
+function goBack() {
+  if(window.viewingFromPortfolio) {
+    go('map');
+    showPortfolioPanel('Test Portfolio 2', 2);
+  } else {
+    go('pipeline');
+  }
+}
+
+// ── MATCH REVIEW ──
+const matchData = [
+  { status:'confirmed', filename:'Holloway_Phase1.pdf', report:'123 Holloway Ave, Newark NJ', matched:'123 Holloway Ave, Newark NJ', distance:'12m, APN match' },
+  { status:'inferred', filename:'LBA_Sacramento.pdf', report:'4400 Florin Rd, Parcel B, Sacramento CA (pre-dev)', matched:'4400 Florin Rd, Sacramento CA', distance:'87m apart', actions:true },
+  { status:'inferred', filename:'Industrial_NJ.pdf', report:'Lot 7, Block 42, Newark Industrial Park', matched:'890 Industrial Blvd, Newark NJ', distance:'143m apart', actions:true },
+  { status:'unmatched', filename:'OldWarehouse.pdf', report:'1200 Route 9 South, Woodbridge NJ', matched:'No portfolio site within 500m', actions:true }
+];
+
+function openMatchModal(numDocs) {
+  if(numDocs <= 1) return; // Only show for multiple docs
+  document.getElementById('matchModal').classList.add('on');
+  populateMatchItems();
+}
+function closeMatchModal() {
+  document.getElementById('matchModal').classList.remove('on');
+}
+function populateMatchItems() {
+  const container = document.getElementById('matchItems');
+  container.innerHTML = matchData.map((item, i) => {
+    const badgeClass = 'match-badge match-' + item.status;
+    const badgeIcon = item.status === 'confirmed' ? '✓' : item.status === 'inferred' ? '⚠' : '✕';
+    const statusText = item.status.toUpperCase();
+    return `
+      <div class="match-item">
+        <div class="match-status">
+          <div class="${badgeClass}">${badgeIcon}</div>
+          <span>${statusText}</span>
+        </div>
+        <div class="match-filename">${item.filename}</div>
+        <div class="match-report">Report: <strong>${item.report}</strong></div>
+        ${item.matched ? `<div class="match-matched">→ ${item.status === 'confirmed' ? 'Matched' : 'Best match'}: <strong>${item.matched}</strong> <span style="color:#9CA3AF">(${item.distance})</span></div>` : ''}
+        ${item.actions ? `<div class="match-actions">
+          <button class="match-action-btn" onclick="confirmMatch(${i})">[Confirm]</button>
+          <button class="match-action-btn" onclick="showAssignMenu(${i})">[Assign to different site ▼]</button>
+          <button class="match-action-btn" onclick="addAsNewSite(${i})">[Add as new site]</button>
+        </div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+function confirmMatch(idx) {
+  matchData[idx].status = 'confirmed';
+  populateMatchItems();
+  showToast('Match confirmed');
+}
+function showAssignMenu(idx) {
+  alert('Assign to different site: ' + matchData[idx].filename);
+}
+function addAsNewSite(idx) {
+  matchData[idx].status = 'confirmed';
+  populateMatchItems();
+  showToast('Added as new portfolio site');
+}
+function confirmMatches() {
+  closeMatchModal();
+  closeSearchPanel();
+  showPortfolioPanel('Test Portfolio 2', 2);
+  showToast('All reports matched and attached to portfolio');
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent='✓ '+msg; t.style.opacity='1';
+  setTimeout(()=>t.style.opacity='0',2800);
+}
+</script>
+</body>
+</html>
